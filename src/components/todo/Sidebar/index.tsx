@@ -2,6 +2,7 @@ import { Menu } from "lucide-react";
 import { systemMenus, userMenus } from "@/data/SidebarMenuData";
 import SystemMenu from "./SystemMenu";
 import UserMenu from "./UserMenu";
+import { MenuAddSection } from "./MenuAddSection";
 
 export default function Sidebar() {
   return (
@@ -34,6 +35,14 @@ export default function Sidebar() {
           <UserMenu key={item.id} menu={item} />
         ))}
       </nav>
+
+      {/* Separator */}
+      <div className="px-4 mt-4">
+        <div className="border-t border-gray-300"></div>
+      </div>
+
+      {/* Menu Add Buttons */}
+      <MenuAddSection />
     </aside>
   );
 }
