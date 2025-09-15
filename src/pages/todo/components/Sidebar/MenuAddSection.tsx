@@ -2,7 +2,7 @@ import { useState } from "react";
 import GroupAddInput from "./GroupAddInput";
 import ListAddInput from "./ListAddInput";
 import GroupAddToggleBtn from "./GroupAddTogglBtn";
-import SimpleTooltip from "../../ui/SimpleTooltip";
+import SimpleTooltip from "@/components/ui/SimpleTooltip";
 
 export function MenuAddSection() {
   const [newListName, setNewListName] = useState("");

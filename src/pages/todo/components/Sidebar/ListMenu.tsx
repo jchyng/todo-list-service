@@ -1,4 +1,4 @@
-import ColorDot from "../ColorDot";
+import ColorDot from "@/components/ColorDot";
 import BaseMenu from "./BaseMenu";
 
 interface ListMenuProps {

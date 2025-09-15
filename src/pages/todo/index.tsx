@@ -1,5 +1,5 @@
-import { Header } from "@/components/todo/Header";
-import Sidebar from "@/components/todo/Sidebar";
+import { Header } from "@/components/Header";
+import Sidebar from "./components/Sidebar";
 
 export default function TodoPage() {
   return (
