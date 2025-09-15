@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 
 interface HeaderProps {
   currentPage?: "todo" | "calendar";
@@ -24,6 +25,7 @@ export function Header({
   onSearch,
 }: HeaderProps) {
   const navigate = useNavigate();
+  const { user, loading, signOut } = useAuth();
   return (
     <header className="w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="max-w-7xl mx-auto flex h-16 items-center justify-between px-4">
@@ -52,7 +54,7 @@ export function Header({
         {/* Navigation & User Menu */}
         <div className="flex items-center">
           {/* Navigation Menu */}
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-1">
             <Button
               variant="outline"
               size="sm"
@@ -88,46 +90,52 @@ export function Header({
           {/* User Avatar & Dropdown */}
           <div className="ml-6">
             <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-9 w-9 rounded-full">
-                <Avatar className="h-9 w-9">
-                  <AvatarImage
-                    src="https://ui.shadcn.com/avatars/shadcn.jpg"
-                    alt="사용자"
-                  />
-                  <AvatarFallback>
-                    <User className="h-4 w-4" />
-                  </AvatarFallback>
-                </Avatar>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56" align="end" forceMount>
-              <div className="flex flex-col space-y-1 p-2">
-                <div className="flex items-center space-x-2">
-                  <Avatar className="h-8 w-8">
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="relative h-9 w-9 rounded-full"
+                  disabled={loading}
+                >
+                  <Avatar className="h-9 w-9">
                     <AvatarImage
-                      src="https://ui.shadcn.com/avatars/shadcn.jpg"
-                      alt="사용자"
+                      src={user?.user_metadata?.avatar_url}
+                      alt={user?.user_metadata?.full_name}
                     />
                     <AvatarFallback>
                       <User className="h-4 w-4" />
                     </AvatarFallback>
                   </Avatar>
-                  <div className="flex flex-col space-y-1 leading-none">
-                    <p className="font-medium">사용자 이름</p>
-                    <p className="text-xs text-muted-foreground">
-                      user@example.com
-                    </p>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56" align="end" forceMount>
+                <div className="flex flex-col space-y-1 p-2">
+                  <div className="flex items-center space-x-2">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage
+                        src={user?.user_metadata?.avatar_url}
+                        alt={user?.user_metadata?.full_name}
+                      />
+                      <AvatarFallback>
+                        <User className="h-4 w-4" />
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex flex-col space-y-1 leading-none">
+                      <p className="font-medium">
+                        {user?.user_metadata?.full_name}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {user?.email}
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <LogOut className="mr-2 h-4 w-4 " />
-                로그아웃
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={signOut} disabled={loading}>
+                  <LogOut className="mr-2 h-4 w-4 " />
+                  로그아웃
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>
