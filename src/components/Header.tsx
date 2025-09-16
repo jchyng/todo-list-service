@@ -1,7 +1,7 @@
-import { Search, Calendar, CheckSquare, User, LogOut } from "lucide-react";
+import { Search, Calendar, CheckSquare, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/UserAvatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -96,29 +96,23 @@ export function Header({
                   className="relative h-9 w-9 rounded-full"
                   disabled={loading}
                 >
-                  <Avatar className="h-9 w-9">
-                    <AvatarImage
-                      src={user?.user_metadata?.avatar_url}
-                      alt={user?.user_metadata?.full_name}
-                    />
-                    <AvatarFallback>
-                      <User className="h-4 w-4" />
-                    </AvatarFallback>
-                  </Avatar>
+                  <UserAvatar
+                    src={user?.user_metadata?.avatar_url}
+                    alt={user?.user_metadata?.full_name}
+                    name={user?.user_metadata?.full_name}
+                    size="md"
+                  />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-56" align="end" forceMount>
                 <div className="flex flex-col space-y-1 p-2">
                   <div className="flex items-center space-x-2">
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage
-                        src={user?.user_metadata?.avatar_url}
-                        alt={user?.user_metadata?.full_name}
-                      />
-                      <AvatarFallback>
-                        <User className="h-4 w-4" />
-                      </AvatarFallback>
-                    </Avatar>
+                    <UserAvatar
+                      src={user?.user_metadata?.avatar_url}
+                      alt={user?.user_metadata?.full_name}
+                      name={user?.user_metadata?.full_name}
+                      size="sm"
+                    />
                     <div className="flex flex-col space-y-1 leading-none">
                       <p className="font-medium">
                         {user?.user_metadata?.full_name}

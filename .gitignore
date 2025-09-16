@@ -2,6 +2,7 @@
 # Edit at https://www.toptal.com/developers/gitignore?templates=visualstudiocode,react
 
 .env.*
+dist/
 
 ### react ###
 .DS_*
