@@ -50,6 +50,10 @@ export function useAuth() {
 
       if (error) throw error;
 
+      if (await isNewUser()) {
+        //todo: 신규 사용자 생성 시 기본으로 필요한 todo list 생성
+      }
+
       return { data, error: null };
     } catch (error) {
       console.error("Google 로그인 실패:", error);
@@ -57,6 +61,20 @@ export function useAuth() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const isNewUser = async (): Promise<boolean> => {
+    const { data: userData } = await supabase.auth.getUser();
+    const user = userData?.user;
+
+    if (!user) return false;
+
+    const createdAt = new Date(user.created_at).getTime();
+    const lastSignInAt = new Date(
+      user.last_sign_in_at ?? user.created_at
+    ).getTime();
+
+    return createdAt === lastSignInAt;
   };
 
   const signOut = async () => {
