@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 export default function LandingPage() {
-  const { user, loading, signInWithGoogle } = useAuth();
+  const { user, loading, signInWithOAuth } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -17,7 +17,10 @@ export default function LandingPage() {
       {/* Header with Google Login */}
       <header className="w-full p-4">
         <div className="max-w-7xl mx-auto flex justify-end">
-          <GoogleLoginBtn onClick={signInWithGoogle} loading={loading} />
+          <GoogleLoginBtn
+            onClick={() => signInWithOAuth({ providerName: "google" })}
+            loading={loading}
+          />
         </div>
       </header>
 
