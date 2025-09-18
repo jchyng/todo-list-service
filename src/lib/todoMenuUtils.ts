@@ -131,3 +131,71 @@ export const transformMenuData = (
 
   return result;
 };
+
+/**
+ * 최적화된 RPC 결과를 UserMenuProps 배열로 변환
+ * @param optimizedData RPC 함수에서 반환된 플랫 구조 데이터
+ */
+export const transformOptimizedMenuData = (optimizedData: any[]): UserMenuProps[] => {
+  console.log('🔄 [최적화 변환] 변환 시작:', {
+    totalRows: optimizedData.length
+  });
+
+  const result: UserMenuProps[] = [];
+  const groupsMap = new Map<number, UserMenuProps>();
+
+  // 1. 그룹과 목록을 분리하면서 처리
+  optimizedData.forEach(item => {
+    if (item.type === 'group') {
+      // 그룹 아이템 생성
+      const group: UserMenuProps = {
+        id: item.id,
+        text: item.name,
+        type: "group",
+        children: [],
+        isTemp: false,
+        isPending: false,
+      };
+      groupsMap.set(item.id, group);
+      result.push(group);
+
+    } else if (item.type === 'list') {
+      // 목록 아이템 생성
+      const list: UserMenuProps = {
+        id: item.id,
+        text: item.name,
+        type: "list",
+        color: item.color || "blue",
+        count: 0, // TODO: 실제 할 일 개수 계산
+        isTemp: false,
+        isPending: false,
+      };
+
+      // 그룹에 속한 목록인지 확인
+      if (item.parent_id) {
+        const parentGroup = groupsMap.get(item.parent_id);
+        if (parentGroup && parentGroup.children) {
+          // 그룹의 children에 ListMenuProps 형태로 추가
+          parentGroup.children.push({
+            id: item.id,
+            text: item.name,
+            type: "list",
+            color: item.color || "blue",
+            count: 0,
+          });
+        }
+      } else {
+        // 독립 목록
+        result.push(list);
+      }
+    }
+  });
+
+  console.log('✅ [최적화 변환] 변환 완료:', {
+    totalItems: result.length,
+    groups: result.filter(item => item.type === 'group').length,
+    lists: result.filter(item => item.type === 'list').length
+  });
+
+  return result;
+};

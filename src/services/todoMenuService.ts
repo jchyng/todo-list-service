@@ -83,7 +83,11 @@ export async function createDefaultSystemList(userId: string) {
 }
 
 /**
- * 사용자의 모든 메뉴 조회 (그룹 + 독립 목록)
+ * @deprecated 이 함수는 성능상 이유로 더 이상 사용되지 않습니다.
+ * 대신 getUserMenusOptimized()를 사용해주세요.
+ * 3개의 개별 쿼리 대신 1개의 최적화된 SQL 함수를 사용합니다.
+ *
+ * 사용자의 모든 메뉴 조회 (그룹 + 독립 목록) - DEPRECATED
  * @param userId - 사용자 ID
  * @returns 그룹, 독립 목록, 그룹별 목록 데이터 또는 에러
  */
@@ -132,6 +136,37 @@ export async function getUserMenus(userId: string) {
     };
   } catch (error) {
     console.error("❌ 사용자 메뉴 조회 실패:", error);
+    return { data: null, error };
+  }
+}
+
+/**
+ * 사용자의 모든 메뉴 조회 (최적화된 버전)
+ * PostgreSQL 함수를 통해 1번의 쿼리로 모든 데이터 조회
+ * @param userId - 사용자 ID
+ * @returns 최적화된 메뉴 데이터 또는 에러
+ */
+export async function getUserMenusOptimized(userId: string) {
+  try {
+    console.log('🚀 [최적화 조회] RPC 함수 호출 시작:', userId);
+
+    const { data, error } = await supabase.rpc('get_user_menus', {
+      p_user_id: userId
+    });
+
+    if (error) throw error;
+
+    console.log('✅ [최적화 조회] RPC 함수 호출 완료:', {
+      totalRows: data?.length || 0,
+      types: data?.reduce((acc: any, item: any) => {
+        acc[item.type] = (acc[item.type] || 0) + 1;
+        return acc;
+      }, {})
+    });
+
+    return { data: data || [], error: null };
+  } catch (error) {
+    console.error("❌ 최적화된 사용자 메뉴 조회 실패:", error);
     return { data: null, error };
   }
 }

@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Menu, CircleCheckBig } from "lucide-react";
 import { systemMenus, type UserMenuProps } from "@/data/SidebarMenuData";
 import { useAuth } from "@/hooks/useAuth";
-import { getUserMenus } from "@/services/todoMenuService";
-import { transformMenuData } from "@/lib/todoMenuUtils";
+import { getUserMenusOptimized } from "@/services/todoMenuService";
+import { transformOptimizedMenuData } from "@/lib/todoMenuUtils";
 import SystemMenu from "./SystemMenu";
 import UserMenu from "./UserMenu";
 import { MenuAddSection } from "./MenuAddSection";
@@ -15,27 +15,23 @@ export default function Sidebar() {
   const [error, setError] = useState<string | null>(null);
 
   // 사용자 메뉴 데이터 로드
-  const loadUserMenus = async () => {
-    if (!user) return;
+  const loadUserMenus = useCallback(async () => {
+    if (!user?.id) return;
 
     console.log('🔄 [데이터 로드] 사용자 메뉴 로드 시작:', user.id);
     setIsLoading(true);
     setError(null);
 
     try {
-      const { data, error } = await getUserMenus(user.id);
+      const { data, error } = await getUserMenusOptimized(user.id);
 
       if (error) throw error;
 
       if (data) {
-        const transformedMenus = transformMenuData(
-          data.groups,
-          data.independentLists,
-          data.groupLists
-        );
+        const transformedMenus = transformOptimizedMenuData(data);
         setUserMenus(transformedMenus);
 
-        console.log('✅ [데이터 로드] 메뉴 로드 완료:', {
+        console.log('✅ [데이터 로드] 최적화된 메뉴 로드 완료:', {
           totalMenus: transformedMenus.length
         });
       }
@@ -45,12 +41,12 @@ export default function Sidebar() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user?.id]);
 
   // 사용자 로그인 시 데이터 로드
   useEffect(() => {
     loadUserMenus();
-  }, [user]);
+  }, [loadUserMenus]);
 
   const addGroup = (group: UserMenuProps) => {
     console.log('➕ [UI 상태] 그룹 추가:', {
@@ -62,11 +58,11 @@ export default function Sidebar() {
     });
     setUserMenus(prev => [...prev, group]);
 
-    // 실제 DB 저장 성공 시 데이터 다시 로드
-    if (!group.isTemp && !group.isPending) {
-      console.log('🔄 [실제 저장 완료] 그룹 저장 완료, 데이터 재로드');
-      setTimeout(() => loadUserMenus(), 100); // 잠시 후 다시 로드
-    }
+    // 무한 렌더링 방지: 실제 DB 저장 완료 시 재로드 제거
+    // if (!group.isTemp && !group.isPending) {
+    //   console.log('🔄 [실제 저장 완료] 그룹 저장 완료, 데이터 재로드');
+    //   setTimeout(() => loadUserMenus(), 100); // 잠시 후 다시 로드
+    // }
   };
 
   const addList = (list: UserMenuProps) => {
@@ -79,11 +75,11 @@ export default function Sidebar() {
     });
     setUserMenus(prev => [...prev, list]);
 
-    // 실제 DB 저장 성공 시 데이터 다시 로드
-    if (!list.isTemp && !list.isPending) {
-      console.log('🔄 [실제 저장 완료] 목록 저장 완료, 데이터 재로드');
-      setTimeout(() => loadUserMenus(), 100); // 잠시 후 다시 로드
-    }
+    // 무한 렌더링 방지: 실제 DB 저장 완료 시 재로드 제거
+    // if (!list.isTemp && !list.isPending) {
+    //   console.log('🔄 [실제 저장 완료] 목록 저장 완료, 데이터 재로드');
+    //   setTimeout(() => loadUserMenus(), 100); // 잠시 후 다시 로드
+    // }
   };
 
   const removeMenu = (id: string) => {

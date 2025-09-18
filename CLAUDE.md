@@ -45,10 +45,24 @@ src/
 - `@/*` 경로 별칭으로 src/\* import
 - 역할 별 함수 분리와 코드 재사용
 
+## 데이터베이스 관리
+
+### PostgreSQL 함수 관리
+- **함수 정의**: `src/sql/functions/` 폴더에서 관리
+- **배포 방법**: Supabase Dashboard → SQL Editor에서 함수 실행
+- **RPC 호출**: React에서 `supabase.rpc('function_name', params)` 사용
+
+### 최적화 기법
+- **쿼리 통합**: 여러 테이블 조회 시 PostgreSQL 함수로 통합하여 1회 호출
+- **타입 캐스팅**: VARCHAR → TEXT 명시적 캐스팅으로 안전한 타입 변환
+- **예약어 처리**: `position` 등 예약어는 큰따옴표로 감싸기
+
 ## 개발 규칙
 
 - 한국어 사용
 - 데이터베이스 스키마 변경 시 schema.sql에 반영
+- SQL 함수 수정 시 src/sql/ 폴더에 반영
+- 성능 최적화 시 RPC 함수 우선 고려
 
 ## 핵심 설계 원칙
 
