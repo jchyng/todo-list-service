@@ -3,16 +3,64 @@ import GroupAddInput from "./GroupAddInput";
 import ListAddInput from "./ListAddInput";
 import GroupAddToggleBtn from "./GroupAddTogglBtn";
 import SimpleTooltip from "@/components/ui/SimpleTooltip";
+import { useAuth } from "@/hooks/useAuth";
+import { useOptimistic } from "@/hooks/useOptimistic";
+import { createGroup, createList } from "@/services/todoMenuService";
+import {
+  generateTempId,
+  generateNewPosition,
+  createOptimisticGroup,
+  createOptimisticList
+} from "@/lib/todoMenuUtils";
 
-export function MenuAddSection() {
+import type { UserMenuProps } from "@/data/SidebarMenuData";
+
+interface MenuAddSectionProps {
+  onGroupAdd: (group: UserMenuProps) => void;
+  onListAdd: (list: UserMenuProps) => void;
+  onMenuRemove: (id: string) => void;
+  onMenuUpdate: (item: UserMenuProps) => void;
+  userMenus: UserMenuProps[];
+}
+
+export function MenuAddSection({ onGroupAdd, onListAdd, onMenuRemove, onMenuUpdate, userMenus }: MenuAddSectionProps) {
+  const { user } = useAuth();
   const [newListName, setNewListName] = useState("");
   const [newGroupName, setNewGroupName] = useState("");
   const [isAddingGroup, setIsAddingGroup] = useState(false);
 
-  const saveGroup = () => {
-    console.log("그룹 저장:", newGroupName);
+  // 낙관적 업데이트 훅 초기화
+  const { execute: executeGroupCreate } = useOptimistic(
+    createGroup,
+    { onAdd: onGroupAdd, onRemove: onMenuRemove, onUpdate: onMenuUpdate }
+  );
+
+  const { execute: executeListCreate } = useOptimistic(
+    createList,
+    { onAdd: onListAdd, onRemove: onMenuRemove, onUpdate: onMenuUpdate }
+  );
+
+  const saveGroup = async () => {
+    const trimmedName = newGroupName.trim();
+    if (!trimmedName) return; // 빈 입력은 조용히 무시
+
+    // UI 상태 즉시 업데이트
     setNewGroupName("");
     setIsAddingGroup(false);
+
+    // 마지막 position 가져오기 (현재는 임시로 null, 나중에 DB에서 실제 position 가져올 예정)
+    const lastPosition = userMenus.length > 0 ? `a${userMenus.length - 1}` : null;
+
+    // 낙관적 업데이트 실행
+    const tempId = generateTempId("group");
+    const newPosition = generateNewPosition(lastPosition);
+    const optimisticGroup = createOptimisticGroup(tempId, trimmedName);
+
+    await executeGroupCreate(
+      optimisticGroup,
+      [user!.id, trimmedName, newPosition],
+      "그룹 생성에 실패했습니다. 다시 시도해주세요."
+    );
   };
 
   const cancelGroup = () => {
@@ -20,9 +68,26 @@ export function MenuAddSection() {
     setIsAddingGroup(false);
   };
 
-  const saveList = () => {
-    console.log("리스트 저장:", newListName);
+  const saveList = async () => {
+    const trimmedName = newListName.trim();
+    if (!trimmedName) return; // 빈 입력은 조용히 무시
+
+    // UI 상태 즉시 업데이트
     setNewListName("");
+
+    // 마지막 position 가져오기 (현재는 임시로 null, 나중에 DB에서 실제 position 가져올 예정)
+    const lastPosition = userMenus.length > 0 ? `a${userMenus.length - 1}` : null;
+
+    // 낙관적 업데이트 실행
+    const tempId = generateTempId("list");
+    const newPosition = generateNewPosition(lastPosition);
+    const optimisticList = createOptimisticList(tempId, trimmedName);
+
+    await executeListCreate(
+      optimisticList,
+      [user!.id, trimmedName, null, null, newPosition, false],
+      "목록 생성에 실패했습니다. 다시 시도해주세요."
+    );
   };
 
   const cancelList = () => {

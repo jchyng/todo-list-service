@@ -1,4 +1,5 @@
 import { CheckSquare, Star, Sun, type LucideIcon } from "lucide-react";
+import type { OptimisticItem } from "@/lib/types";
 
 interface SystemMenuProps {
   id: number;
@@ -30,9 +31,8 @@ export interface ListMenuProps {
   count: number;
 }
 
-export interface UserMenuProps {
+export interface UserMenuProps extends OptimisticItem {
   //group or list
-  id: number;
   text: string;
   type: "group" | "list";
   color?: string;
