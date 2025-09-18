@@ -25,11 +25,28 @@ export const colors = [
 
 export type TailwindColor = (typeof colors)[number];
 
-// Tailwind JIT purge 문제 방지를 위해 미리 맵 생성 (정적)
-export const colorClasses: Record<TailwindColor, string> = {} as Record<
-  TailwindColor,
-  string
->;
-colors.forEach((c) => {
-  colorClasses[c] = `bg-${c}-500`;
-});
+// Tailwind JIT purge 문제 방지를 위해 정적 클래스 매핑
+export const colorClasses: Record<TailwindColor, string> = {
+  slate: "bg-slate-500",
+  gray: "bg-gray-500",
+  zinc: "bg-zinc-500",
+  neutral: "bg-neutral-500",
+  stone: "bg-stone-500",
+  red: "bg-red-500",
+  orange: "bg-orange-500",
+  amber: "bg-amber-500",
+  yellow: "bg-yellow-500",
+  lime: "bg-lime-500",
+  green: "bg-green-500",
+  emerald: "bg-emerald-500",
+  teal: "bg-teal-500",
+  cyan: "bg-cyan-500",
+  sky: "bg-sky-500",
+  blue: "bg-blue-500",
+  indigo: "bg-indigo-500",
+  violet: "bg-violet-500",
+  purple: "bg-purple-500",
+  fuchsia: "bg-fuchsia-500",
+  pink: "bg-pink-500",
+  rose: "bg-rose-500",
+};

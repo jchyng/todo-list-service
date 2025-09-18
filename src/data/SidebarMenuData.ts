@@ -80,7 +80,7 @@ export const userMenus: UserMenuProps[] = [
     id: 6,
     text: "Inbox",
     type: "list",
-    color: "gray",
+    color: "blue",
     count: 0,
   },
 ];
