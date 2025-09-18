@@ -81,3 +81,57 @@ export async function createList(
 export async function createDefaultSystemList(userId: string) {
   return createList(userId, "작업", null, null, "0", true);
 }
+
+/**
+ * 사용자의 모든 메뉴 조회 (그룹 + 독립 목록)
+ * @param userId - 사용자 ID
+ * @returns 그룹, 독립 목록, 그룹별 목록 데이터 또는 에러
+ */
+export async function getUserMenus(userId: string) {
+  try {
+    // 1. 그룹 조회
+    const { data: groups, error: groupsError } = await supabase
+      .from('groups')
+      .select('*')
+      .eq('user_id', userId)
+      .order('position');
+
+    if (groupsError) throw groupsError;
+
+    // 2. 독립 목록 조회 (group_id가 null이고 is_system이 false인 것들)
+    const { data: independentLists, error: listsError } = await supabase
+      .from('lists')
+      .select('*')
+      .eq('user_id', userId)
+      .is('group_id', null)
+      .eq('is_system', false)
+      .order('position');
+
+    if (listsError) throw listsError;
+
+    // 3. 각 그룹에 속한 목록들 조회 (is_system이 false인 것들만)
+    const { data: groupLists, error: groupListsError } = await supabase
+      .from('lists')
+      .select('*')
+      .eq('user_id', userId)
+      .not('group_id', 'is', null)
+      .eq('is_system', false)
+      .order('position');
+
+    if (groupListsError) throw groupListsError;
+
+    console.log('📊 [DB 조회] 사용자 메뉴 데이터:', {
+      groups: groups?.length || 0,
+      independentLists: independentLists?.length || 0,
+      groupLists: groupLists?.length || 0
+    });
+
+    return {
+      data: { groups: groups || [], independentLists: independentLists || [], groupLists: groupLists || [] },
+      error: null
+    };
+  } catch (error) {
+    console.error("❌ 사용자 메뉴 조회 실패:", error);
+    return { data: null, error };
+  }
+}

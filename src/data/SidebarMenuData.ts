@@ -40,47 +40,5 @@ export interface UserMenuProps extends OptimisticItem {
   children?: ListMenuProps[];
 }
 
-export const userMenus: UserMenuProps[] = [
-  {
-    id: 1,
-    text: "Work",
-    type: "group",
-    children: [
-      {
-        id: 2,
-        text: "Frontend",
-        type: "list",
-        color: "purple",
-        count: 2,
-      },
-      {
-        id: 3,
-        text: "Backend",
-        type: "list",
-        color: "yellow",
-        count: 2,
-      },
-    ],
-  },
-  {
-    id: 4,
-    text: "Personal",
-    type: "group",
-    children: [
-      {
-        id: 5,
-        text: "Shopping",
-        type: "list",
-        color: "amber",
-        count: 1,
-      },
-    ],
-  },
-  {
-    id: 6,
-    text: "Inbox",
-    type: "list",
-    color: "blue",
-    count: 0,
-  },
-];
+// 정적 userMenus 배열 제거됨 - 실제 DB 데이터로 대체
+// UserMenuProps 타입은 유지

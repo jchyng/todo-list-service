@@ -48,8 +48,11 @@ export function MenuAddSection({ onGroupAdd, onListAdd, onMenuRemove, onMenuUpda
     setNewGroupName("");
     setIsAddingGroup(false);
 
-    // 마지막 position 가져오기 (현재는 임시로 null, 나중에 DB에서 실제 position 가져올 예정)
-    const lastPosition = userMenus.length > 0 ? `a${userMenus.length - 1}` : null;
+    // 실제 데이터에서 마지막 position 가져오기
+    const realMenus = userMenus.filter(menu => !menu.isTemp);
+    const lastPosition = realMenus.length > 0
+      ? realMenus[realMenus.length - 1].id.toString()
+      : null;
 
     // 낙관적 업데이트 실행
     const tempId = generateTempId("group");
@@ -75,8 +78,11 @@ export function MenuAddSection({ onGroupAdd, onListAdd, onMenuRemove, onMenuUpda
     // UI 상태 즉시 업데이트
     setNewListName("");
 
-    // 마지막 position 가져오기 (현재는 임시로 null, 나중에 DB에서 실제 position 가져올 예정)
-    const lastPosition = userMenus.length > 0 ? `a${userMenus.length - 1}` : null;
+    // 실제 데이터에서 마지막 position 가져오기
+    const realMenus = userMenus.filter(menu => !menu.isTemp);
+    const lastPosition = realMenus.length > 0
+      ? realMenus[realMenus.length - 1].id.toString()
+      : null;
 
     // 낙관적 업데이트 실행
     const tempId = generateTempId("list");
