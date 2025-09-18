@@ -1,9 +1,9 @@
-import { useAuth } from "../hooks/useAuth";
+import { useAuthContext } from "@/contexts/AuthContext";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 export default function LandingPage() {
-  const { user, loading, signInWithOAuth } = useAuth();
+  const { user, loading, signInWithOAuth } = useAuthContext();
   const navigate = useNavigate();
 
   useEffect(() => {

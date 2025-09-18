@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Menu, CircleCheckBig } from "lucide-react";
 import { systemMenus, type UserMenuProps } from "@/data/SidebarMenuData";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuthContext } from "@/contexts/AuthContext";
 import { getUserMenusOptimized } from "@/services/todoMenuService";
 import { transformOptimizedMenuData } from "@/lib/todoMenuUtils";
 import SystemMenu from "./SystemMenu";
@@ -9,21 +9,19 @@ import UserMenu from "./UserMenu";
 import { MenuAddSection } from "./MenuAddSection";
 
 export default function Sidebar() {
-  const { user } = useAuth();
+  const { user } = useAuthContext();
   const [userMenus, setUserMenus] = useState<UserMenuProps[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // 사용자 메뉴 데이터 로드
-  const loadUserMenus = useCallback(async () => {
-    if (!user?.id) return;
-
-    console.log('🔄 [데이터 로드] 사용자 메뉴 로드 시작:', user.id);
+  // 사용자 메뉴 데이터 로드 - 원래 로직으로 복원
+  const loadUserMenus = useCallback(async (userId: string) => {
+    console.log('🔄 [데이터 로드] 사용자 메뉴 로드 시작:', userId);
     setIsLoading(true);
     setError(null);
 
     try {
-      const { data, error } = await getUserMenusOptimized(user.id);
+      const { data, error } = await getUserMenusOptimized(userId);
 
       if (error) throw error;
 
@@ -41,12 +39,14 @@ export default function Sidebar() {
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id]);
+  }, []);
 
-  // 사용자 로그인 시 데이터 로드
+  // 사용자 로그인 시 데이터 로드 - user?.id 직접 의존성으로 사용
   useEffect(() => {
-    loadUserMenus();
-  }, [loadUserMenus]);
+    if (user?.id) {
+      loadUserMenus(user.id);
+    }
+  }, [user?.id, loadUserMenus]);
 
   const addGroup = (group: UserMenuProps) => {
     console.log('➕ [UI 상태] 그룹 추가:', {
@@ -136,7 +136,7 @@ export default function Sidebar() {
           <div className="px-4 py-8 text-center text-destructive">
             <p className="text-sm">{error}</p>
             <button
-              onClick={loadUserMenus}
+              onClick={() => user?.id && loadUserMenus(user.id)}
               className="mt-2 text-xs underline hover:no-underline"
             >
               다시 시도

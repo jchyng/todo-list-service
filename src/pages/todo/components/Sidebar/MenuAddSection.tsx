@@ -3,7 +3,7 @@ import GroupAddInput from "./GroupAddInput";
 import ListAddInput from "./ListAddInput";
 import GroupAddToggleBtn from "./GroupAddTogglBtn";
 import SimpleTooltip from "@/components/ui/SimpleTooltip";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuthContext } from "@/contexts/AuthContext";
 import { useOptimistic } from "@/hooks/useOptimistic";
 import { createGroup, createList } from "@/services/todoMenuService";
 import {
@@ -24,7 +24,7 @@ interface MenuAddSectionProps {
 }
 
 export function MenuAddSection({ onGroupAdd, onListAdd, onMenuRemove, onMenuUpdate, userMenus }: MenuAddSectionProps) {
-  const { user } = useAuth();
+  const { user } = useAuthContext();
   const [newListName, setNewListName] = useState("");
   const [newGroupName, setNewGroupName] = useState("");
   const [isAddingGroup, setIsAddingGroup] = useState(false);
