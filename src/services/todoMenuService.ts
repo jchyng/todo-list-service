@@ -1,5 +1,6 @@
 import type { TailwindColor } from "@/constant/TailwindColor";
 import { supabase } from "@/lib/supabase";
+import { generateKeyBetween } from "fractional-indexing";
 
 /**
  * Todo 메뉴(그룹, 리스트) 생성 관련 서비스
@@ -80,6 +81,101 @@ export async function createList(
 
 export async function createDefaultSystemList(userId: string) {
   return createList(userId, "작업", null, null, "0", true);
+}
+
+/**
+ * 목록 삭제
+ * @param userId - 사용자 ID
+ * @param listId - 삭제할 목록 ID
+ * @returns 삭제 결과 또는 에러
+ */
+export async function deleteList(userId: string, listId: number) {
+  try {
+    const { error } = await supabase
+      .from("lists")
+      .delete()
+      .eq("id", listId)
+      .eq("user_id", userId);
+
+    if (error) throw error;
+
+    return { data: { success: true }, error: null };
+  } catch (error) {
+    console.error("❌ 목록 삭제 실패:", error);
+    return { data: null, error };
+  }
+}
+
+/**
+ * 그룹 해제 (그룹 내 모든 목록을 독립 목록으로 변환)
+ * @param userId - 사용자 ID
+ * @param groupId - 해제할 그룹 ID
+ * @returns 해제 결과 또는 에러
+ */
+export async function dissolveGroup(userId: string, groupId: number) {
+  try {
+    // 1. 그룹에 속한 모든 목록 조회
+    const { data: groupLists, error: listsError } = await supabase
+      .from("lists")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("group_id", groupId)
+      .order("position");
+
+    if (listsError) throw listsError;
+
+    if (groupLists && groupLists.length > 0) {
+      // 2. 독립 목록들의 마지막 position 조회
+      const { data: independentLists, error: independentError } = await supabase
+        .from("lists")
+        .select("position")
+        .eq("user_id", userId)
+        .is("group_id", null)
+        .order("position", { ascending: false })
+        .limit(1);
+
+      if (independentError) throw independentError;
+
+      // 3. fractional indexing으로 새로운 position 계산
+      let lastPosition = independentLists?.[0]?.position || null;
+      const updates = groupLists.map(list => {
+        const newPosition = generateKeyBetween(lastPosition, null);
+        lastPosition = newPosition;
+        return {
+          id: list.id,
+          position: newPosition
+        };
+      });
+
+      // 4. 트랜잭션으로 모든 목록의 group_id와 position 업데이트
+      for (const update of updates) {
+        const { error: updateError } = await supabase
+          .from("lists")
+          .update({
+            group_id: null,
+            position: update.position
+          })
+          .eq("id", update.id)
+          .eq("user_id", userId);
+
+        if (updateError) throw updateError;
+      }
+    }
+
+    // 5. 그룹 삭제
+    const { error: deleteError } = await supabase
+      .from("groups")
+      .delete()
+      .eq("id", groupId)
+      .eq("user_id", userId);
+
+    if (deleteError) throw deleteError;
+
+    return { data: { success: true, updatedLists: groupLists?.length || 0 }, error: null };
+  } catch (error) {
+    console.error("❌ 그룹 해제 실패:", error);
+    return { data: null, error };
+  }
 }
 
 /**

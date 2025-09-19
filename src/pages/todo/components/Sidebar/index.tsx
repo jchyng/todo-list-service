@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Menu, CircleCheckBig } from "lucide-react";
 import { systemMenus, type UserMenuProps } from "@/data/SidebarMenuData";
 import { useAuthContext } from "@/contexts/AuthContext";
-import { getUserMenusOptimized } from "@/services/todoMenuService";
+import { getUserMenusOptimized, deleteList, dissolveGroup } from "@/services/todoMenuService";
 import { transformOptimizedMenuData } from "@/lib/todoMenuUtils";
 import SystemMenu from "./SystemMenu";
 import UserMenu from "./UserMenu";
@@ -101,6 +101,58 @@ export default function Sidebar() {
     );
   };
 
+  const handleDeleteList = async (listId: number) => {
+    if (!user?.id) return;
+
+    console.log('🗑️ [목록 삭제] 시작:', { listId });
+
+    // 낙관적 UI 업데이트 - 즉시 UI에서 제거
+    const originalMenus = [...userMenus];
+    setUserMenus(prev => prev.filter(menu => menu.id !== listId));
+
+    try {
+      const { error } = await deleteList(user.id, listId);
+
+      if (error) {
+        throw error;
+      }
+
+      console.log('✅ [목록 삭제] 성공:', { listId });
+    } catch (error) {
+      console.error('❌ [목록 삭제] 실패:', error);
+      // 실패 시 원상복구
+      setUserMenus(originalMenus);
+      // TODO: 토스트 알림 추가
+    }
+  };
+
+  const handleDissolveGroup = async (groupId: number) => {
+    if (!user?.id) return;
+
+    console.log('📦 [그룹 해제] 시작:', { groupId });
+
+    // 낙관적 UI 업데이트 - 즉시 UI에서 제거
+    const originalMenus = [...userMenus];
+    setUserMenus(prev => prev.filter(menu => menu.id !== groupId));
+
+    try {
+      const { error } = await dissolveGroup(user.id, groupId);
+
+      if (error) {
+        throw error;
+      }
+
+      console.log('✅ [그룹 해제] 성공:', { groupId });
+      // 그룹 해제 후 데이터 다시 로드하여 변경된 목록들 반영
+      await loadUserMenus(user.id);
+    } catch (error) {
+      console.error('❌ [그룹 해제] 실패:', error);
+      // 실패 시 원상복구
+      setUserMenus(originalMenus);
+      // TODO: 토스트 알림 추가
+    }
+  };
+
   return (
     <aside className="w-64 vh-100 border-r border-border">
       {/* Spread Button */}
@@ -149,7 +201,12 @@ export default function Sidebar() {
           </div>
         ) : (
           userMenus.map((item) => (
-            <UserMenu key={item.id} menu={item} />
+            <UserMenu
+              key={item.id}
+              menu={item}
+              onDeleteList={handleDeleteList}
+              onDissolveGroup={handleDissolveGroup}
+            />
           ))
         )}
       </nav>
