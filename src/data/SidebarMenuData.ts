@@ -37,6 +37,7 @@ export interface UserMenuProps extends OptimisticItem {
   type: "group" | "list";
   color?: string;
   count?: number;
+  position?: string;
   children?: ListMenuProps[];
 }
 

@@ -60,6 +60,7 @@ export const transformGroupToUserMenu = (group: any, children: any[] = []): User
   id: group.id,
   text: group.name,
   type: "group",
+  position: group.position,
   children: children.map(list => transformListToListMenu(list)),
   isTemp: false,
   isPending: false,
@@ -75,6 +76,7 @@ export const transformListToUserMenu = (list: any): UserMenuProps => ({
   type: "list",
   color: list.color || "blue",
   count: 0, // TODO: 실제 할 일 개수 계산
+  position: list.position,
   isTemp: false,
   isPending: false,
 });
@@ -152,6 +154,7 @@ export const transformOptimizedMenuData = (optimizedData: any[]): UserMenuProps[
         id: item.id,
         text: item.name,
         type: "group",
+        position: item.position,
         children: [],
         isTemp: false,
         isPending: false,
@@ -167,6 +170,7 @@ export const transformOptimizedMenuData = (optimizedData: any[]): UserMenuProps[
         type: "list",
         color: item.color || "blue",
         count: 0, // TODO: 실제 할 일 개수 계산
+        position: item.position,
         isTemp: false,
         isPending: false,
       };

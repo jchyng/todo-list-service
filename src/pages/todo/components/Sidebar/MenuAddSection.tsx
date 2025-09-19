@@ -51,7 +51,7 @@ export function MenuAddSection({ onGroupAdd, onListAdd, onMenuRemove, onMenuUpda
     // 실제 데이터에서 마지막 position 가져오기
     const realMenus = userMenus.filter(menu => !menu.isTemp);
     const lastPosition = realMenus.length > 0
-      ? realMenus[realMenus.length - 1].id.toString()
+      ? realMenus[realMenus.length - 1].position || null
       : null;
 
     // 낙관적 업데이트 실행
@@ -81,7 +81,7 @@ export function MenuAddSection({ onGroupAdd, onListAdd, onMenuRemove, onMenuUpda
     // 실제 데이터에서 마지막 position 가져오기
     const realMenus = userMenus.filter(menu => !menu.isTemp);
     const lastPosition = realMenus.length > 0
-      ? realMenus[realMenus.length - 1].id.toString()
+      ? realMenus[realMenus.length - 1].position || null
       : null;
 
     // 낙관적 업데이트 실행
