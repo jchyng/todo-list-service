@@ -1,50 +1,63 @@
 import type { TailwindColor } from "@/constant/TailwindColor";
 import { supabase } from "@/lib/supabase";
-import { generateKeyBetween } from "fractional-indexing";
 
 /**
  * Todo 메뉴(그룹, 리스트) 생성 관련 서비스
  */
 
 /**
- * 새로운 그룹 생성
+ * 새로운 그룹 생성 (DB에서 자동 position 계산)
  * @param userId - 사용자 ID
  * @param name - 그룹 이름
- * @param position - 그룹 위치
+ * @param afterPosition - 이 position 뒤에 추가 (선택사항, 없으면 맨 뒤)
  * @returns 생성된 그룹 데이터 또는 에러
  */
 export async function createGroup(
   userId: string,
   name: string,
-  position: string
+  afterPosition?: string
 ) {
   try {
-    const { data, error } = await supabase
+    // 1. 그룹 생성
+    const { data: group, error: groupError } = await supabase
       .from("groups")
       .insert({
         user_id: userId,
         name,
-        position,
       })
       .select()
       .single();
 
-    if (error) throw error;
+    if (groupError) throw groupError;
 
-    return { data, error: null };
+    // 2. DB에서 자동으로 position 계산하여 추가
+    const { data: position, error: positionError } = await supabase.rpc('add_menu_item', {
+      p_user_id: userId,
+      p_item_type: 'group',
+      p_item_id: group.id,
+      p_after_position: afterPosition || null
+    });
+
+    if (positionError) {
+      // 실패시 그룹 삭제 (롤백)
+      await supabase.from("groups").delete().eq("id", group.id);
+      throw positionError;
+    }
+
+    return { data: { ...group, position }, error: null };
   } catch (error) {
-    console.error("그룹 생성 실패:", error);
+    console.error("❌ 그룹 생성 실패:", error);
     return { data: null, error };
   }
 }
 
 /**
- * 새로운 리스트 생성
+ * 새로운 리스트 생성 (DB에서 자동 position 계산)
  * @param userId - 사용자 ID
- * @param color - 리스트 색상
  * @param name - 리스트 이름
+ * @param color - 리스트 색상
  * @param groupId - 그룹 ID (선택사항)
- * @param position - 리스트 위치
+ * @param afterPosition - 이 position 뒤에 추가 (선택사항, 없으면 맨 뒤)
  * @param isSystem - 시스템 리스트 여부 (기본값: false)
  * @returns 생성된 리스트 데이터 또는 에러
  */
@@ -53,11 +66,12 @@ export async function createList(
   name: string,
   color: TailwindColor | null = null,
   groupId: number | null = null,
-  position: string,
+  afterPosition?: string,
   isSystem: boolean = false
 ) {
   try {
-    const { data, error } = await supabase
+    // 1. 리스트 생성
+    const { data: list, error: listError } = await supabase
       .from("lists")
       .insert({
         user_id: userId,
@@ -65,14 +79,31 @@ export async function createList(
         color,
         name,
         is_system: isSystem,
-        position,
       })
       .select()
       .single();
 
-    if (error) throw error;
+    if (listError) throw listError;
 
-    return { data, error: null };
+    // 2. 시스템 리스트가 아닌 경우에만 menu_positions에 추가
+    if (!isSystem) {
+      const { data: position, error: positionError } = await supabase.rpc('add_menu_item', {
+        p_user_id: userId,
+        p_item_type: 'list',
+        p_item_id: list.id,
+        p_after_position: afterPosition || null
+      });
+
+      if (positionError) {
+        // 실패시 리스트 삭제 (롤백)
+        await supabase.from("lists").delete().eq("id", list.id);
+        throw positionError;
+      }
+
+      return { data: { ...list, position }, error: null };
+    }
+
+    return { data: list, error: null };
   } catch (error) {
     console.error("❌ 리스트 생성 실패:", error);
     return { data: null, error };
@@ -80,8 +111,9 @@ export async function createList(
 }
 
 export async function createDefaultSystemList(userId: string) {
-  return createList(userId, "작업", null, null, "0", true);
+  return createList(userId, "작업", null, null, undefined, true);
 }
+
 
 /**
  * 목록 삭제
@@ -91,6 +123,14 @@ export async function createDefaultSystemList(userId: string) {
  */
 export async function deleteList(userId: string, listId: number) {
   try {
+    // 1. menu_positions에서 삭제
+    await supabase.rpc('remove_menu_item', {
+      p_user_id: userId,
+      p_item_type: 'list',
+      p_item_id: listId
+    });
+
+    // 2. 목록 삭제
     const { error } = await supabase
       .from("lists")
       .delete()
@@ -119,50 +159,37 @@ export async function dissolveGroup(userId: string, groupId: number) {
       .from("lists")
       .select("*")
       .eq("user_id", userId)
-      .eq("group_id", groupId)
-      .order("position");
+      .eq("group_id", groupId);
 
     if (listsError) throw listsError;
 
     if (groupLists && groupLists.length > 0) {
-      // 2. 독립 목록들의 마지막 position 조회
-      const { data: independentLists, error: independentError } = await supabase
-        .from("lists")
-        .select("position")
-        .eq("user_id", userId)
-        .is("group_id", null)
-        .order("position", { ascending: false })
-        .limit(1);
-
-      if (independentError) throw independentError;
-
-      // 3. fractional indexing으로 새로운 position 계산
-      let lastPosition = independentLists?.[0]?.position || null;
-      const updates = groupLists.map(list => {
-        const newPosition = generateKeyBetween(lastPosition, null);
-        lastPosition = newPosition;
-        return {
-          id: list.id,
-          position: newPosition
-        };
-      });
-
-      // 4. 트랜잭션으로 모든 목록의 group_id와 position 업데이트
-      for (const update of updates) {
-        const { error: updateError } = await supabase
+      // 2. 각 목록을 독립 목록으로 변경
+      for (const list of groupLists) {
+        // group_id 제거
+        await supabase
           .from("lists")
-          .update({
-            group_id: null,
-            position: update.position
-          })
-          .eq("id", update.id)
-          .eq("user_id", userId);
+          .update({ group_id: null })
+          .eq("id", list.id);
 
-        if (updateError) throw updateError;
+        // 새로운 position으로 메뉴에 추가 (맨 뒤에)
+        await supabase.rpc('add_menu_item', {
+          p_user_id: userId,
+          p_item_type: 'list',
+          p_item_id: list.id,
+          p_after_position: null
+        });
       }
     }
 
-    // 5. 그룹 삭제
+    // 3. 그룹 position 삭제
+    await supabase.rpc('remove_menu_item', {
+      p_user_id: userId,
+      p_item_type: 'group',
+      p_item_id: groupId
+    });
+
+    // 4. 그룹 삭제
     const { error: deleteError } = await supabase
       .from("groups")
       .delete()
@@ -237,32 +264,32 @@ export async function getUserMenus(userId: string) {
 }
 
 /**
- * 사용자의 모든 메뉴 조회 (최적화된 버전)
- * PostgreSQL 함수를 통해 1번의 쿼리로 모든 데이터 조회
+ * 사용자의 모든 메뉴 조회 (position 기반)
  * @param userId - 사용자 ID
- * @returns 최적화된 메뉴 데이터 또는 에러
+ * @returns 메뉴 데이터 또는 에러
  */
 export async function getUserMenusOptimized(userId: string) {
   try {
-    console.log('🚀 [최적화 조회] RPC 함수 호출 시작:', userId);
+    console.log('🚀 [메뉴 조회] RPC 함수 호출 시작:', userId);
 
-    const { data, error } = await supabase.rpc('get_user_menus', {
+    const { data, error } = await supabase.rpc('get_user_menus_with_positions', {
       p_user_id: userId
     });
 
     if (error) throw error;
 
-    console.log('✅ [최적화 조회] RPC 함수 호출 완료:', {
+    console.log('✅ [메뉴 조회] RPC 함수 호출 완료:', {
       totalRows: data?.length || 0,
-      types: data?.reduce((acc: any, item: any) => {
-        acc[item.type] = (acc[item.type] || 0) + 1;
+      types: data?.reduce((acc: Record<string, number>, item: unknown) => {
+        const typedItem = item as {type: string};
+        acc[typedItem.type] = (acc[typedItem.type] || 0) + 1;
         return acc;
       }, {})
     });
 
     return { data: data || [], error: null };
   } catch (error) {
-    console.error("❌ 최적화된 사용자 메뉴 조회 실패:", error);
+    console.error("❌ 사용자 메뉴 조회 실패:", error);
     return { data: null, error };
   }
 }

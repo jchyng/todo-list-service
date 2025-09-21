@@ -1,4 +1,3 @@
-import { generateKeyBetween } from "fractional-indexing";
 import type { UserMenuProps, ListMenuProps } from "@/data/SidebarMenuData";
 
 /**
@@ -7,14 +6,6 @@ import type { UserMenuProps, ListMenuProps } from "@/data/SidebarMenuData";
  */
 export const generateTempId = (prefix: string): string => {
   return `temp-${prefix}-${Date.now()}`;
-};
-
-/**
- * 새로운 fractional index position 생성
- * @param lastPosition 마지막 아이템의 position (없으면 null)
- */
-export const generateNewPosition = (lastPosition?: string | null): string => {
-  return generateKeyBetween(lastPosition || null, null);
 };
 
 /**
@@ -136,17 +127,20 @@ export const transformMenuData = (
 
 /**
  * 최적화된 RPC 결과를 UserMenuProps 배열로 변환
- * @param optimizedData RPC 함수에서 반환된 플랫 구조 데이터
+ * 통합 position 관리로 group과 list가 올바른 순서로 정렬됨
+ * @param optimizedData RPC 함수에서 반환된 플랫 구조 데이터 (이미 position 순으로 정렬됨)
  */
 export const transformOptimizedMenuData = (optimizedData: any[]): UserMenuProps[] => {
   console.log('🔄 [최적화 변환] 변환 시작:', {
-    totalRows: optimizedData.length
+    totalRows: optimizedData.length,
+    firstItem: optimizedData[0]?.position,
+    lastItem: optimizedData[optimizedData.length - 1]?.position
   });
 
   const result: UserMenuProps[] = [];
   const groupsMap = new Map<number, UserMenuProps>();
 
-  // 1. 그룹과 목록을 분리하면서 처리
+  // 1. 그룹과 목록을 순서대로 처리 (이미 position으로 정렬된 상태)
   optimizedData.forEach(item => {
     if (item.type === 'group') {
       // 그룹 아이템 생성
@@ -179,7 +173,7 @@ export const transformOptimizedMenuData = (optimizedData: any[]): UserMenuProps[
       if (item.parent_id) {
         const parentGroup = groupsMap.get(item.parent_id);
         if (parentGroup && parentGroup.children) {
-          // 그룹의 children에 ListMenuProps 형태로 추가
+          // 그룹의 children에 ListMenuProps 형태로 추가 (result에는 추가하지 않음)
           parentGroup.children.push({
             id: item.id,
             text: item.name,
@@ -189,17 +183,35 @@ export const transformOptimizedMenuData = (optimizedData: any[]): UserMenuProps[
           });
         }
       } else {
-        // 독립 목록
+        // 독립 목록만 result에 추가
         result.push(list);
       }
     }
   });
 
+  // 결과는 이미 position 순으로 정렬되어 있음 (SQL에서 ORDER BY position)
   console.log('✅ [최적화 변환] 변환 완료:', {
     totalItems: result.length,
     groups: result.filter(item => item.type === 'group').length,
-    lists: result.filter(item => item.type === 'list').length
+    lists: result.filter(item => item.type === 'list').length,
+    positionOrder: result.map(item => `${item.type}:${item.position}`).join(' → ')
   });
+
+  // 🔍 Key 중복 디버깅: 그룹과 목록은 서로 다른 테이블에서 오므로 같은 ID를 가질 수 있음
+  // React key는 `${item.type}-${item.id}` 형태로 해결됨
+  const groupIds = result.filter(item => item.type === 'group').map(item => item.id);
+  const listIds = result.filter(item => item.type === 'list').map(item => item.id);
+  const groupDuplicates = groupIds.filter((id, index) => groupIds.indexOf(id) !== index);
+  const listDuplicates = listIds.filter((id, index) => listIds.indexOf(id) !== index);
+
+  if (groupDuplicates.length > 0 || listDuplicates.length > 0) {
+    console.error('🚨 [Key 중복] 같은 타입 내 중복 ID 발견:', {
+      groups: groupDuplicates,
+      lists: listDuplicates
+    });
+  } else {
+    console.log('✅ [Key 검증] 타입별 ID 중복 없음 (그룹-목록 간 같은 ID는 정상)');
+  }
 
   return result;
 };

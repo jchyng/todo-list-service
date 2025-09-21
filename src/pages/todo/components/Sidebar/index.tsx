@@ -202,7 +202,7 @@ export default function Sidebar() {
         ) : (
           userMenus.map((item) => (
             <UserMenu
-              key={item.id}
+              key={`${item.type}-${item.id}`}
               menu={item}
               onDeleteList={handleDeleteList}
               onDissolveGroup={handleDissolveGroup}
@@ -222,7 +222,6 @@ export default function Sidebar() {
         onListAdd={addList}
         onMenuRemove={removeMenu}
         onMenuUpdate={updateMenu}
-        userMenus={userMenus}
       />
     </aside>
   );

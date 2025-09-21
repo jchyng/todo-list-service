@@ -9,7 +9,6 @@ CREATE TABLE groups (
     id BIGSERIAL PRIMARY KEY,
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     name VARCHAR(100) NOT NULL,
-    position VARCHAR(50) NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -22,7 +21,6 @@ CREATE TABLE lists (
     name VARCHAR(100) NOT NULL,
     color VARCHAR(20),
     is_system BOOLEAN DEFAULT FALSE,
-    position VARCHAR(50) NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -30,7 +28,7 @@ CREATE TABLE lists (
 -- 아이템 테이블
 CREATE TABLE items (
     id BIGSERIAL PRIMARY KEY,
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,   
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     list_id BIGINT NOT NULL REFERENCES lists(id) ON DELETE CASCADE,
     title VARCHAR(255) NOT NULL,
     description TEXT,
@@ -41,11 +39,28 @@ CREATE TABLE items (
     completed_at TIMESTAMPTZ
 );
 
+-- 메뉴 position 관리 테이블 (group과 list의 position 통합 관리)
+CREATE TABLE menu_positions (
+    id BIGSERIAL PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    item_type TEXT NOT NULL CHECK (item_type IN ('group', 'list')),
+    item_id BIGINT NOT NULL,
+    position VARCHAR(50) NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+
+    -- 제약조건: 각 아이템은 하나의 position만, 사용자별 position 중복 방지
+    CONSTRAINT menu_positions_unique_item UNIQUE (item_type, item_id),
+    CONSTRAINT menu_positions_unique_user_position UNIQUE (user_id, position)
+);
+
 
 -- 인덱스 생성
-CREATE INDEX idx_groups_user_id_position ON groups(user_id, position);
-CREATE INDEX idx_lists_user_id_position ON lists(user_id, position);
+CREATE INDEX idx_groups_user_id ON groups(user_id);
+CREATE INDEX idx_lists_user_id ON lists(user_id);
+CREATE INDEX idx_lists_group_id ON lists(group_id);
 CREATE INDEX idx_items_list_id_position ON items(list_id, position);
+CREATE INDEX idx_menu_positions_user_position ON menu_positions(user_id, position);
+CREATE INDEX idx_menu_positions_item ON menu_positions(item_type, item_id);
 
 
 
@@ -58,6 +73,7 @@ ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE groups ENABLE ROW LEVEL SECURITY;
 ALTER TABLE lists ENABLE ROW LEVEL SECURITY;
 ALTER TABLE items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE menu_positions ENABLE ROW LEVEL SECURITY;
 
 -- users 정책 (INSERT/SELECT/UPDATE/DELETE 분리)
 CREATE POLICY "Users can insert their profile" ON users FOR INSERT WITH CHECK (auth.uid() = id);
@@ -100,6 +116,9 @@ CREATE POLICY "Users can delete items in their lists" ON items FOR DELETE USING 
         AND lists.user_id = auth.uid()
     )
 );
+
+-- menu_positions 정책
+CREATE POLICY "Users can manage their menu positions" ON menu_positions FOR ALL USING (auth.uid() = user_id);
 
 
 

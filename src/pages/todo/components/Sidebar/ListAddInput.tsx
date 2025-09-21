@@ -1,5 +1,5 @@
 import { Plus } from "lucide-react";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 
 interface ListAddInputProps {
   value: string;
@@ -10,13 +10,22 @@ interface ListAddInputProps {
 
 export default function ListAddInput({ value, onChange, onSave, onCancel }: ListAddInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const [isComposing, setIsComposing] = useState(false);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
+    if (e.key === 'Enter' && !isComposing) {
       onSave();
     } else if (e.key === 'Escape') {
       onCancel();
     }
+  };
+
+  const handleCompositionStart = () => {
+    setIsComposing(true);
+  };
+
+  const handleCompositionEnd = () => {
+    setIsComposing(false);
   };
   return (
     <div className="flex items-center gap-2">
@@ -29,6 +38,8 @@ export default function ListAddInput({ value, onChange, onSave, onCancel }: List
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={handleKeyDown}
+        onCompositionStart={handleCompositionStart}
+        onCompositionEnd={handleCompositionEnd}
         placeholder="새 목록"
         className="outline-none placeholder:text-gray-500"
       />
