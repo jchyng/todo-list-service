@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
 import { Menu, CircleCheckBig } from "lucide-react";
 import { systemMenus, type UserMenuProps } from "@/data/SidebarMenuData";
-import { useAuthContext } from "@/contexts/AuthContext";
+import { useAuthContext } from "@/hooks/useAuthContext";
 import { getUserMenusOptimized, deleteList, dissolveGroup } from "@/services/todoMenuService";
 import { transformOptimizedMenuData } from "@/lib/todoMenuUtils";
+import { toast } from "@/hooks/useToast";
 import SystemMenu from "./SystemMenu";
 import UserMenu from "./UserMenu";
 import { MenuAddSection } from "./MenuAddSection";
@@ -36,6 +37,7 @@ export default function Sidebar() {
     } catch (err) {
       console.error('❌ [데이터 로드] 메뉴 로드 실패:', err);
       setError('메뉴 데이터를 불러오는데 실패했습니다.');
+      toast.error('메뉴 데이터를 불러오는데 실패했습니다.');
     } finally {
       setIsLoading(false);
     }
@@ -122,7 +124,7 @@ export default function Sidebar() {
       console.error('❌ [목록 삭제] 실패:', error);
       // 실패 시 원상복구
       setUserMenus(originalMenus);
-      // TODO: 토스트 알림 추가
+      toast.error('목록 삭제에 실패했습니다. 다시 시도해주세요.');
     }
   };
 
@@ -149,7 +151,7 @@ export default function Sidebar() {
       console.error('❌ [그룹 해제] 실패:', error);
       // 실패 시 원상복구
       setUserMenus(originalMenus);
-      // TODO: 토스트 알림 추가
+      toast.error('그룹 해제에 실패했습니다. 다시 시도해주세요.');
     }
   };
 

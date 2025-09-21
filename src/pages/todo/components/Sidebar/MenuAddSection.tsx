@@ -3,7 +3,7 @@ import GroupAddInput from "./GroupAddInput";
 import ListAddInput from "./ListAddInput";
 import GroupAddToggleBtn from "./GroupAddTogglBtn";
 import SimpleTooltip from "@/components/ui/SimpleTooltip";
-import { useAuthContext } from "@/contexts/AuthContext";
+import { useAuthContext } from "@/hooks/useAuthContext";
 import { useOptimistic } from "@/hooks/useOptimistic";
 import { createGroup, createList } from "@/services/todoMenuService";
 import {
