@@ -53,6 +53,28 @@ CREATE TABLE menu_positions (
     CONSTRAINT menu_positions_unique_user_position UNIQUE (user_id, position)
 );
 
+-- CASCADE 관계를 위한 트리거 함수
+CREATE OR REPLACE FUNCTION delete_menu_position_on_item_delete()
+RETURNS TRIGGER AS $$
+BEGIN
+    DELETE FROM menu_positions
+    WHERE item_type = TG_ARGV[0] AND item_id = OLD.id;
+    RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
+
+-- groups 삭제 시 menu_positions에서 자동 삭제
+CREATE TRIGGER delete_group_position
+    AFTER DELETE ON groups
+    FOR EACH ROW
+    EXECUTE FUNCTION delete_menu_position_on_item_delete('group');
+
+-- lists 삭제 시 menu_positions에서 자동 삭제
+CREATE TRIGGER delete_list_position
+    AFTER DELETE ON lists
+    FOR EACH ROW
+    EXECUTE FUNCTION delete_menu_position_on_item_delete('list');
+
 
 -- 인덱스 생성
 CREATE INDEX idx_groups_user_id ON groups(user_id);

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Menu, CircleCheckBig } from "lucide-react";
 import { systemMenus, type UserMenuProps } from "@/data/SidebarMenuData";
 import { useAuthContext } from "@/hooks/useAuthContext";
-import { getUserMenusOptimized, deleteList, dissolveGroup } from "@/services/todoMenuService";
+import { getUserMenus, deleteList, dissolveGroup } from "@/services/todoMenuService";
 import { transformOptimizedMenuData } from "@/lib/todoMenuUtils";
 import { toast } from "@/hooks/useToast";
 import SystemMenu from "./SystemMenu";
@@ -22,9 +22,9 @@ export default function Sidebar() {
     setError(null);
 
     try {
-      const { data, error } = await getUserMenusOptimized(userId);
+      const { success, data, error } = await getUserMenus(userId);
 
-      if (error) throw error;
+      if (!success) throw new Error(error);
 
       if (data) {
         const transformedMenus = transformOptimizedMenuData(data);
@@ -113,10 +113,10 @@ export default function Sidebar() {
     setUserMenus(prev => prev.filter(menu => menu.id !== listId));
 
     try {
-      const { error } = await deleteList(user.id, listId);
+      const { success, error } = await deleteList(user.id, listId);
 
-      if (error) {
-        throw error;
+      if (!success) {
+        throw new Error(error);
       }
 
       console.log('✅ [목록 삭제] 성공:', { listId });
@@ -138,10 +138,10 @@ export default function Sidebar() {
     setUserMenus(prev => prev.filter(menu => menu.id !== groupId));
 
     try {
-      const { error } = await dissolveGroup(user.id, groupId);
+      const { success, error } = await dissolveGroup(user.id, groupId);
 
-      if (error) {
-        throw error;
+      if (!success) {
+        throw new Error(error);
       }
 
       console.log('✅ [그룹 해제] 성공:', { groupId });

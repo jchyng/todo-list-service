@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import GroupAddInput from "./GroupAddInput";
 import ListAddInput from "./ListAddInput";
 import GroupAddToggleBtn from "./GroupAddTogglBtn";
@@ -21,6 +21,12 @@ interface MenuAddSectionProps {
   onMenuUpdate: (item: UserMenuProps) => void;
 }
 
+// 에러 메시지 상수
+const ERROR_MESSAGES = {
+  GROUP_CREATE: "그룹 생성에 실패했습니다. 다시 시도해주세요.",
+  LIST_CREATE: "목록 생성에 실패했습니다. 다시 시도해주세요.",
+} as const;
+
 export function MenuAddSection({
   onGroupAdd,
   onListAdd,
@@ -32,90 +38,97 @@ export function MenuAddSection({
   const [newGroupName, setNewGroupName] = useState("");
   const [isAddingGroup, setIsAddingGroup] = useState(false);
 
-  // 낙관적 업데이트 훅 초기화
-  const { execute: executeGroupCreate } = useOptimistic(createGroup, {
+  // 낙관적 업데이트 훅
+  const groupOptimistic = useOptimistic(createGroup, {
     onAdd: onGroupAdd,
     onRemove: onMenuRemove,
     onUpdate: onMenuUpdate,
   });
 
-  const { execute: executeListCreate } = useOptimistic(createList, {
+  const listOptimistic = useOptimistic(createList, {
     onAdd: onListAdd,
     onRemove: onMenuRemove,
     onUpdate: onMenuUpdate,
   });
 
-  const saveGroup = async () => {
+  // 그룹 저장
+  const handleGroupSave = useCallback(async () => {
     const trimmedName = newGroupName.trim();
-    if (!trimmedName) return; // 빈 입력은 조용히 무시
+    if (!trimmedName || !user) return;
 
-    // UI 상태 즉시 업데이트
+    // UI 초기화
     setNewGroupName("");
     setIsAddingGroup(false);
 
-    // 낙관적 업데이트 실행 (position은 DB에서 자동 계산)
+    // 낙관적 업데이트 실행
     const tempId = generateTempId("group");
     const optimisticGroup = createOptimisticGroup(tempId, trimmedName);
 
-    await executeGroupCreate(
+    await groupOptimistic.execute(
       optimisticGroup,
-      [user!.id, trimmedName], // afterPosition은 undefined (맨 뒤에 추가)
-      "그룹 생성에 실패했습니다. 다시 시도해주세요."
+      [user.id, trimmedName],
+      ERROR_MESSAGES.GROUP_CREATE
     );
-  };
+  }, [newGroupName, user, groupOptimistic]);
 
-  const cancelGroup = () => {
+  // 그룹 취소
+  const handleGroupCancel = useCallback(() => {
     setNewGroupName("");
     setIsAddingGroup(false);
-  };
+  }, []);
 
-  const saveList = async () => {
+  // 리스트 저장
+  const handleListSave = useCallback(async () => {
     const trimmedName = newListName.trim();
-    if (!trimmedName) return; // 빈 입력은 조용히 무시
+    if (!trimmedName || !user) return;
 
-    // UI 상태 즉시 업데이트
+    // UI 초기화
     setNewListName("");
 
-    // 낙관적 업데이트 실행 (position은 DB에서 자동 계산)
+    // 낙관적 업데이트 실행
     const tempId = generateTempId("list");
     const optimisticList = createOptimisticList(tempId, trimmedName);
 
-    await executeListCreate(
+    await listOptimistic.execute(
       optimisticList,
-      [user!.id, trimmedName, null, null], // color, groupId, afterPosition은 기본값
-      "목록 생성에 실패했습니다. 다시 시도해주세요."
+      [user.id, trimmedName, null, null],
+      ERROR_MESSAGES.LIST_CREATE
     );
-  };
+  }, [newListName, user, listOptimistic]);
 
-  const cancelList = () => {
+  // 리스트 취소
+  const handleListCancel = useCallback(() => {
     setNewListName("");
-  };
+  }, []);
+
+  // 그룹 토글
+  const handleGroupToggle = useCallback(() => {
+    setIsAddingGroup((prev) => !prev);
+  }, []);
 
   return (
-    //todo: Command + N & Command + G => focus 처리
     <div>
       <div className="space-y-2 pt-2 pb-4">
-        {/* Group Add Input */}
+        {/* 그룹 추가 입력 */}
         <GroupAddInput
           value={newGroupName}
           onChange={setNewGroupName}
           isVisible={isAddingGroup}
-          onSave={saveGroup}
-          onCancel={cancelGroup}
+          onSave={handleGroupSave}
+          onCancel={handleGroupCancel}
         />
 
-        {/* Action Buttons */}
+        {/* 액션 버튼 영역 */}
         <div className="flex items-center justify-between px-3 py-2 hover:bg-accent cursor-pointer">
           <ListAddInput
             value={newListName}
             onChange={setNewListName}
-            onSave={saveList}
-            onCancel={cancelList}
+            onSave={handleListSave}
+            onCancel={handleListCancel}
           />
+
           <SimpleTooltip text="새 그룹">
-            <GroupAddToggleBtn
-              onClick={() => setIsAddingGroup(!isAddingGroup)}
-            />
+            <GroupAddToggleBtn onClick={handleGroupToggle} />
           </SimpleTooltip>
         </div>
       </div>

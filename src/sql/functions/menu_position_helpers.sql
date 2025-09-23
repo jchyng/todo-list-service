@@ -1,6 +1,6 @@
--- 자동 position 관리 함수들 (fractional indexing 내장)
+-- 배열 기반 메뉴 위치 관리 함수들 (fractional indexing 내장)
 
--- 1. 간단한 fractional indexing 구현 (PostgreSQL)
+-- 1. Fractional indexing 헬퍼 함수 (내부용)
 CREATE OR REPLACE FUNCTION generate_position_between(
   p_before VARCHAR(50) DEFAULT NULL,
   p_after VARCHAR(50) DEFAULT NULL
@@ -8,9 +8,6 @@ CREATE OR REPLACE FUNCTION generate_position_between(
 RETURNS VARCHAR(50) AS $$
 DECLARE
   result VARCHAR(50);
-  before_val NUMERIC;
-  after_val NUMERIC;
-  mid_val NUMERIC;
 BEGIN
   -- 맨 처음 추가하는 경우
   IF p_before IS NULL AND p_after IS NULL THEN
@@ -19,7 +16,6 @@ BEGIN
 
   -- 맨 앞에 추가하는 경우
   IF p_before IS NULL THEN
-    -- after의 앞에 삽입
     IF p_after < 'n' THEN
       RETURN chr(ascii(p_after) - 1);
     ELSE
@@ -29,7 +25,6 @@ BEGIN
 
   -- 맨 뒤에 추가하는 경우
   IF p_after IS NULL THEN
-    -- before의 뒤에 삽입
     IF p_before < 'z' THEN
       RETURN chr(ascii(p_before) + 1);
     ELSE
@@ -39,7 +34,6 @@ BEGIN
 
   -- 두 position 사이에 삽입하는 경우
   IF length(p_before) = length(p_after) AND length(p_before) = 1 THEN
-    -- 단일 문자 사이의 중간값
     IF ascii(p_after) - ascii(p_before) > 1 THEN
       RETURN chr((ascii(p_before) + ascii(p_after)) / 2);
     ELSE
@@ -52,76 +46,102 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- 2. 자동 position 계산하여 메뉴 아이템 추가
-CREATE OR REPLACE FUNCTION add_menu_item(
+-- 2. 새 아이템을 배열 인덱스에 추가
+CREATE OR REPLACE FUNCTION add_menu_item_at_index(
   p_user_id UUID,
   p_item_type TEXT,
   p_item_id BIGINT,
-  p_after_position VARCHAR(50) DEFAULT NULL  -- 이 position 뒤에 추가 (NULL이면 맨 뒤)
+  p_index INTEGER DEFAULT NULL  -- 배열 인덱스 (NULL이면 맨 뒤)
 )
 RETURNS VARCHAR(50) AS $$
 DECLARE
+  current_positions VARCHAR(50)[];
+  before_position VARCHAR(50);
+  after_position VARCHAR(50);
   new_position VARCHAR(50);
-  next_position VARCHAR(50);
+  total_count INTEGER;
 BEGIN
-  -- 다음 position 찾기
-  IF p_after_position IS NOT NULL THEN
-    SELECT position INTO next_position
-    FROM menu_positions
-    WHERE user_id = p_user_id AND position > p_after_position
-    ORDER BY position LIMIT 1;
+  -- 현재 사용자의 모든 메뉴 position을 순서대로 가져오기
+  SELECT array_agg(position ORDER BY position), count(*)
+  INTO current_positions, total_count
+  FROM menu_positions
+  WHERE user_id = p_user_id;
+
+  -- 인덱스가 NULL이거나 배열 끝을 넘으면 맨 뒤에 추가
+  IF p_index IS NULL OR p_index >= total_count THEN
+    IF total_count > 0 THEN
+      before_position := current_positions[total_count];
+    END IF;
+    after_position := NULL;
+  ELSIF p_index <= 0 THEN
+    -- 맨 앞에 추가
+    before_position := NULL;
+    IF total_count > 0 THEN
+      after_position := current_positions[1];
+    END IF;
   ELSE
-    -- 맨 뒤에 추가하는 경우, 마지막 position 뒤에 추가
-    SELECT position INTO p_after_position
-    FROM menu_positions
-    WHERE user_id = p_user_id
-    ORDER BY position DESC LIMIT 1;
+    -- 중간에 삽입
+    before_position := current_positions[p_index];
+    IF p_index + 1 <= total_count THEN
+      after_position := current_positions[p_index + 1];
+    END IF;
   END IF;
 
   -- 새 position 생성
-  new_position := generate_position_between(p_after_position, next_position);
+  new_position := generate_position_between(before_position, after_position);
 
   -- menu_positions에 추가
   INSERT INTO menu_positions (user_id, item_type, item_id, position)
-  VALUES (p_user_id, p_item_type, p_item_id, new_position)
-  ON CONFLICT (item_type, item_id)
-  DO UPDATE SET position = EXCLUDED.position;
+  VALUES (p_user_id, p_item_type, p_item_id, new_position);
 
   RETURN new_position;
 END;
 $$ LANGUAGE plpgsql;
 
--- 3. 메뉴 아이템 이동 (드래그 앤 드롭)
-CREATE OR REPLACE FUNCTION move_menu_item(
+-- 3. 기존 아이템을 배열 인덱스로 이동
+CREATE OR REPLACE FUNCTION move_menu_item_to_index(
   p_user_id UUID,
   p_item_type TEXT,
   p_item_id BIGINT,
-  p_after_position VARCHAR(50) DEFAULT NULL  -- 이 position 뒤로 이동 (NULL이면 맨 뒤)
+  p_index INTEGER
 )
 RETURNS VARCHAR(50) AS $$
 DECLARE
+  current_positions VARCHAR(50)[];
+  before_position VARCHAR(50);
+  after_position VARCHAR(50);
   new_position VARCHAR(50);
-  next_position VARCHAR(50);
+  total_count INTEGER;
 BEGIN
-  -- 다음 position 찾기
-  IF p_after_position IS NOT NULL THEN
-    SELECT position INTO next_position
-    FROM menu_positions
-    WHERE user_id = p_user_id
-      AND position > p_after_position
-      AND NOT (item_type = p_item_type AND item_id = p_item_id)  -- 자기 자신 제외
-    ORDER BY position LIMIT 1;
+  -- 기존 아이템을 제외한 현재 메뉴 position들 가져오기
+  SELECT array_agg(position ORDER BY position), count(*)
+  INTO current_positions, total_count
+  FROM menu_positions
+  WHERE user_id = p_user_id
+    AND NOT (item_type = p_item_type AND item_id = p_item_id);
+
+  -- 인덱스가 배열 끝을 넘으면 맨 뒤로 이동
+  IF p_index >= total_count THEN
+    IF total_count > 0 THEN
+      before_position := current_positions[total_count];
+    END IF;
+    after_position := NULL;
+  ELSIF p_index <= 0 THEN
+    -- 맨 앞으로 이동
+    before_position := NULL;
+    IF total_count > 0 THEN
+      after_position := current_positions[1];
+    END IF;
   ELSE
-    -- 맨 뒤로 이동하는 경우
-    SELECT position INTO p_after_position
-    FROM menu_positions
-    WHERE user_id = p_user_id
-      AND NOT (item_type = p_item_type AND item_id = p_item_id)  -- 자기 자신 제외
-    ORDER BY position DESC LIMIT 1;
+    -- 중간으로 이동
+    before_position := current_positions[p_index];
+    IF p_index + 1 <= total_count THEN
+      after_position := current_positions[p_index + 1];
+    END IF;
   END IF;
 
   -- 새 position 생성
-  new_position := generate_position_between(p_after_position, next_position);
+  new_position := generate_position_between(before_position, after_position);
 
   -- position 업데이트
   UPDATE menu_positions
@@ -134,42 +154,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- 4. 메뉴 아이템 삭제
-CREATE OR REPLACE FUNCTION remove_menu_item(
-  p_user_id UUID,
-  p_item_type TEXT,
-  p_item_id BIGINT
-)
-RETURNS BOOLEAN AS $$
-BEGIN
-  DELETE FROM menu_positions
-  WHERE user_id = p_user_id
-    AND item_type = p_item_type
-    AND item_id = p_item_id;
-
-  RETURN FOUND;
-END;
-$$ LANGUAGE plpgsql;
-
--- 5. 메뉴 아이템 position 설정/업데이트
-CREATE OR REPLACE FUNCTION set_menu_position(
-  p_user_id UUID,
-  p_item_type TEXT,
-  p_item_id BIGINT,
-  p_position VARCHAR(50)
-)
-RETURNS BOOLEAN AS $$
-BEGIN
-  INSERT INTO menu_positions (user_id, item_type, item_id, position)
-  VALUES (p_user_id, p_item_type, p_item_id, p_position)
-  ON CONFLICT (item_type, item_id)
-  DO UPDATE SET position = EXCLUDED.position;
-
-  RETURN FOUND;
-END;
-$$ LANGUAGE plpgsql;
-
--- 3. 개선된 사용자 메뉴 조회 (position 기반)
+-- 4. 사용자 메뉴 조회 (position 기반 정렬)
 CREATE OR REPLACE FUNCTION get_user_menus_with_positions(p_user_id UUID)
 RETURNS TABLE (
   type TEXT,

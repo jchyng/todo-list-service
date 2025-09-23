@@ -19,7 +19,7 @@ export function Header({
 
   return (
     <header className="w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="max-w-7xl mx-auto flex h-16 items-center justify-between px-4">
+      <div className="mx-auto flex h-16 items-center justify-between px-2">
         {/* Logo */}
         <div
           className="flex items-center space-x-2 cursor-pointer hover:opacity-80 transition-opacity"
