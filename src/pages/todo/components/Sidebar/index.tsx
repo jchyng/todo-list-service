@@ -2,8 +2,12 @@ import { useState, useEffect, useCallback } from "react";
 import { Menu, CircleCheckBig } from "lucide-react";
 import { systemMenus, type UserMenuProps } from "@/data/SidebarMenuData";
 import { useAuthContext } from "@/hooks/useAuthContext";
-import { getUserMenus, deleteList, dissolveGroup } from "@/services/todoMenuService";
-import { transformOptimizedMenuData } from "@/lib/todoMenuUtils";
+import {
+  getUserMenus,
+  deleteList,
+  dissolveGroup,
+} from "@/services/todoMenuService";
+import { transformRpcMenuData } from "@/lib/todoMenuUtils";
 import { toast } from "@/hooks/useToast";
 import SystemMenu from "./SystemMenu";
 import UserMenu from "./UserMenu";
@@ -17,7 +21,7 @@ export default function Sidebar() {
 
   // 사용자 메뉴 데이터 로드 - 원래 로직으로 복원
   const loadUserMenus = useCallback(async (userId: string) => {
-    console.log('🔄 [데이터 로드] 사용자 메뉴 로드 시작:', userId);
+    console.log("🔄 [데이터 로드] 사용자 메뉴 로드 시작:", userId);
     setIsLoading(true);
     setError(null);
 
@@ -27,17 +31,17 @@ export default function Sidebar() {
       if (!success) throw new Error(error);
 
       if (data) {
-        const transformedMenus = transformOptimizedMenuData(data);
+        const transformedMenus = transformRpcMenuData(data);
         setUserMenus(transformedMenus);
 
-        console.log('✅ [데이터 로드] 최적화된 메뉴 로드 완료:', {
-          totalMenus: transformedMenus.length
+        console.log("✅ [데이터 로드] 최적화된 메뉴 로드 완료:", {
+          totalMenus: transformedMenus.length,
         });
       }
     } catch (err) {
-      console.error('❌ [데이터 로드] 메뉴 로드 실패:', err);
-      setError('메뉴 데이터를 불러오는데 실패했습니다.');
-      toast.error('메뉴 데이터를 불러오는데 실패했습니다.');
+      console.error("❌ [데이터 로드] 메뉴 로드 실패:", err);
+      setError("메뉴 데이터를 불러오는데 실패했습니다.");
+      toast.error("메뉴 데이터를 불러오는데 실패했습니다.");
     } finally {
       setIsLoading(false);
     }
@@ -51,53 +55,41 @@ export default function Sidebar() {
   }, [user?.id, loadUserMenus]);
 
   const addGroup = (group: UserMenuProps) => {
-    console.log('➕ [UI 상태] 그룹 추가:', {
+    console.log("➕ [UI 상태] 그룹 추가:", {
       id: group.id,
       text: group.text,
       type: group.type,
       isTemp: group.isTemp,
-      isPending: group.isPending
+      isPending: group.isPending,
     });
-    setUserMenus(prev => [...prev, group]);
-
-    // 무한 렌더링 방지: 실제 DB 저장 완료 시 재로드 제거
-    // if (!group.isTemp && !group.isPending) {
-    //   console.log('🔄 [실제 저장 완료] 그룹 저장 완료, 데이터 재로드');
-    //   setTimeout(() => loadUserMenus(), 100); // 잠시 후 다시 로드
-    // }
+    setUserMenus((prev) => [...prev, group]);
   };
 
   const addList = (list: UserMenuProps) => {
-    console.log('➕ [UI 상태] 목록 추가:', {
+    console.log("➕ [UI 상태] 목록 추가:", {
       id: list.id,
       text: list.text,
       type: list.type,
       isTemp: list.isTemp,
-      isPending: list.isPending
+      isPending: list.isPending,
     });
-    setUserMenus(prev => [...prev, list]);
-
-    // 무한 렌더링 방지: 실제 DB 저장 완료 시 재로드 제거
-    // if (!list.isTemp && !list.isPending) {
-    //   console.log('🔄 [실제 저장 완료] 목록 저장 완료, 데이터 재로드');
-    //   setTimeout(() => loadUserMenus(), 100); // 잠시 후 다시 로드
-    // }
+    setUserMenus((prev) => [...prev, list]);
   };
 
   const removeMenu = (id: string) => {
-    console.log('➖ [UI 상태] 메뉴 제거:', { id });
-    setUserMenus(prev => prev.filter(menu => menu.id.toString() !== id));
+    console.log("➖ [UI 상태] 메뉴 제거:", { id });
+    setUserMenus((prev) => prev.filter((menu) => menu.id.toString() !== id));
   };
 
   const updateMenu = (updatedItem: UserMenuProps) => {
-    console.log('🔄 [UI 상태] 메뉴 업데이트:', {
+    console.log("🔄 [UI 상태] 메뉴 업데이트:", {
       id: updatedItem.id,
       text: updatedItem.text,
       isTemp: updatedItem.isTemp,
-      isPending: updatedItem.isPending
+      isPending: updatedItem.isPending,
     });
-    setUserMenus(prev =>
-      prev.map(menu =>
+    setUserMenus((prev) =>
+      prev.map((menu) =>
         menu.id.toString() === updatedItem.id.toString() ? updatedItem : menu
       )
     );
@@ -106,11 +98,11 @@ export default function Sidebar() {
   const handleDeleteList = async (listId: number) => {
     if (!user?.id) return;
 
-    console.log('🗑️ [목록 삭제] 시작:', { listId });
+    console.log("🗑️ [목록 삭제] 시작:", { listId });
 
     // 낙관적 UI 업데이트 - 즉시 UI에서 제거
     const originalMenus = [...userMenus];
-    setUserMenus(prev => prev.filter(menu => menu.id !== listId));
+    setUserMenus((prev) => prev.filter((menu) => menu.id !== listId));
 
     try {
       const { success, error } = await deleteList(user.id, listId);
@@ -119,23 +111,23 @@ export default function Sidebar() {
         throw new Error(error);
       }
 
-      console.log('✅ [목록 삭제] 성공:', { listId });
+      console.log("✅ [목록 삭제] 성공:", { listId });
     } catch (error) {
-      console.error('❌ [목록 삭제] 실패:', error);
+      console.error("❌ [목록 삭제] 실패:", error);
       // 실패 시 원상복구
       setUserMenus(originalMenus);
-      toast.error('목록 삭제에 실패했습니다. 다시 시도해주세요.');
+      toast.error("목록 삭제에 실패했습니다. 다시 시도해주세요.");
     }
   };
 
   const handleDissolveGroup = async (groupId: number) => {
     if (!user?.id) return;
 
-    console.log('📦 [그룹 해제] 시작:', { groupId });
+    console.log("📦 [그룹 해제] 시작:", { groupId });
 
     // 낙관적 UI 업데이트 - 즉시 UI에서 제거
     const originalMenus = [...userMenus];
-    setUserMenus(prev => prev.filter(menu => menu.id !== groupId));
+    setUserMenus((prev) => prev.filter((menu) => menu.id !== groupId));
 
     try {
       const { success, error } = await dissolveGroup(user.id, groupId);
@@ -144,14 +136,14 @@ export default function Sidebar() {
         throw new Error(error);
       }
 
-      console.log('✅ [그룹 해제] 성공:', { groupId });
+      console.log("✅ [그룹 해제] 성공:", { groupId });
       // 그룹 해제 후 데이터 다시 로드하여 변경된 목록들 반영
       await loadUserMenus(user.id);
     } catch (error) {
-      console.error('❌ [그룹 해제] 실패:', error);
+      console.error("❌ [그룹 해제] 실패:", error);
       // 실패 시 원상복구
       setUserMenus(originalMenus);
-      toast.error('그룹 해제에 실패했습니다. 다시 시도해주세요.');
+      toast.error("그룹 해제에 실패했습니다. 다시 시도해주세요.");
     }
   };
 

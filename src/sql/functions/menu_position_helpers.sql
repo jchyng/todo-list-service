@@ -46,6 +46,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+
+
 -- 2. 새 아이템을 배열 인덱스에 추가
 CREATE OR REPLACE FUNCTION add_menu_item_at_index(
   p_user_id UUID,
@@ -97,6 +99,8 @@ BEGIN
   RETURN new_position;
 END;
 $$ LANGUAGE plpgsql;
+
+
 
 -- 3. 기존 아이템을 배열 인덱스로 이동
 CREATE OR REPLACE FUNCTION move_menu_item_to_index(
@@ -153,6 +157,8 @@ BEGIN
   RETURN new_position;
 END;
 $$ LANGUAGE plpgsql;
+
+
 
 -- 4. 사용자 메뉴 조회 (position 기반 정렬)
 CREATE OR REPLACE FUNCTION get_user_menus_with_positions(p_user_id UUID)
