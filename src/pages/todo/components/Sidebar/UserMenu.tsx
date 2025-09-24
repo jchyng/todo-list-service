@@ -47,7 +47,7 @@ export default function UserMenu({ menu, onDeleteList, onDissolveGroup }: Compon
       >
         <ListMenu
           dotSize={2}
-          dotColor={menu.color || "gray"}
+          dotColor={menu.color}
           text={menu.text}
           count={menu.count || 0}
         />

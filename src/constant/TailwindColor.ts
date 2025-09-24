@@ -50,3 +50,9 @@ export const colorClasses: Record<TailwindColor, string> = {
   pink: "bg-pink-500",
   rose: "bg-rose-500",
 };
+
+// 랜덤 색상 선택 함수
+export const getRandomColor = (): TailwindColor => {
+  const randomIndex = Math.floor(Math.random() * colors.length);
+  return colors[randomIndex];
+};

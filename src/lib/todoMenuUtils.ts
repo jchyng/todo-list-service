@@ -1,4 +1,5 @@
 import type { UserMenuProps, ListMenuProps } from "@/data/SidebarMenuData";
+import { getRandomColor } from "@/constant/TailwindColor";
 
 export const generateTempId = (prefix: string): string => {
   return `temp-${prefix}-${Date.now()}`;
@@ -16,12 +17,12 @@ export const createOptimisticGroup = (id: string, name: string): UserMenuProps =
 export const createOptimisticList = (
   id: string,
   name: string,
-  color: string = "blue"
+  color?: string
 ): UserMenuProps => ({
   id: id as any,
   text: name,
   type: "list",
-  color,
+  color: color || getRandomColor(),
   count: 0,
   isTemp: true,
   isPending: false,
@@ -39,7 +40,7 @@ export const transformListToUserMenu = (list: any): UserMenuProps => ({
   id: list.id,
   text: list.name,
   type: "list",
-  color: list.color || "blue",
+  color: list.color,
   count: 0,
   position: list.position,
 });
@@ -48,7 +49,7 @@ export const transformListToListMenu = (list: any): ListMenuProps => ({
   id: list.id,
   text: list.name,
   type: "list",
-  color: list.color || "blue",
+  color: list.color,
   count: 0,
 });
 
@@ -83,7 +84,7 @@ const createListFromRpcData = (item: any): UserMenuProps => ({
   id: item.id,
   text: item.name,
   type: "list",
-  color: item.color || "blue",
+  color: item.color,
   count: 0,
   position: item.position,
 });
@@ -95,7 +96,7 @@ const addListToGroup = (list: any, groupsMap: Map<number, UserMenuProps>) => {
       id: list.id,
       text: list.name,
       type: "list",
-      color: list.color || "blue",
+      color: list.color,
       count: 0,
     });
   }

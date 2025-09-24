@@ -11,6 +11,7 @@ import {
   createOptimisticGroup,
   createOptimisticList,
 } from "@/lib/todoMenuUtils";
+import { getRandomColor } from "@/constant/TailwindColor";
 
 import type { UserMenuProps } from "@/data/SidebarMenuData";
 
@@ -85,13 +86,16 @@ export function MenuAddSection({
     // UI 초기화
     setNewListName("");
 
+    // 랜덤 색상 생성
+    const randomColor = getRandomColor();
+
     // 낙관적 업데이트 실행
     const tempId = generateTempId("list");
-    const optimisticList = createOptimisticList(tempId, trimmedName);
+    const optimisticList = createOptimisticList(tempId, trimmedName, randomColor);
 
     await listOptimistic.execute(
       optimisticList,
-      [user.id, trimmedName, null, null],
+      [user.id, trimmedName, randomColor, null],
       ERROR_MESSAGES.LIST_CREATE
     );
   }, [newListName, user, listOptimistic]);
