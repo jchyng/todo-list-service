@@ -1,12 +1,7 @@
 import type { TailwindColor } from "@/constant/TailwindColor";
 import { supabase } from "@/lib/supabase";
-
-type ServiceResult<T = any> = { success: true; data?: T } | { success: false; error: string };
-
-const handleServiceError = (error: any): ServiceResult => ({
-  success: false,
-  error: error?.message || "Unknown error occurred"
-});
+import type { ServiceResult } from "@/utils/serviceUtils";
+import { handleServiceError } from "@/utils/serviceUtils";
 
 export async function createGroup(
   userId: string,
