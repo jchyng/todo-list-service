@@ -29,6 +29,7 @@ export interface ListMenuProps {
   type: "list";
   color: string;
   count: number;
+  isPending?: boolean;
 }
 
 export interface UserMenuProps extends OptimisticItem {

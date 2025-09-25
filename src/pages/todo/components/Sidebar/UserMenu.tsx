@@ -11,7 +11,11 @@ interface ComponentProps {
   onDissolveGroup?: (groupId: number) => void;
 }
 
-export default function UserMenu({ menu, onDeleteList, onDissolveGroup }: ComponentProps) {
+export default function UserMenu({
+  menu,
+  onDeleteList,
+  onDissolveGroup,
+}: ComponentProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   const toggleOpen = () => {
@@ -47,9 +51,10 @@ export default function UserMenu({ menu, onDeleteList, onDissolveGroup }: Compon
       >
         <ListMenu
           dotSize={2}
-          dotColor={menu.color}
+          dotColor={menu.color || "gray"}
           text={menu.text}
           count={menu.count || 0}
+          isPending={menu.isPending}
         />
       </SimpleDropdown>
     );
@@ -72,6 +77,7 @@ export default function UserMenu({ menu, onDeleteList, onDissolveGroup }: Compon
         isOpen={isOpen}
         onToggle={toggleOpen}
         children={menu.children}
+        isPending={menu.isPending}
       />
     </SimpleDropdown>
   );

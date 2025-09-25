@@ -26,12 +26,12 @@ export default function Sidebar() {
     setError(null);
 
     try {
-      const { success, data, error } = await getUserMenus(userId);
+      const result = await getUserMenus(userId);
 
-      if (!success) throw new Error(error);
+      if (!result.success) throw new Error(result.error);
 
-      if (data) {
-        const transformedMenus = transformRpcMenuData(data);
+      if (result.data) {
+        const transformedMenus = transformRpcMenuData(result.data);
         setUserMenus(transformedMenus);
 
         console.log("✅ [데이터 로드] 최적화된 메뉴 로드 완료:", {
@@ -54,46 +54,6 @@ export default function Sidebar() {
     }
   }, [user?.id, loadUserMenus]);
 
-  const addGroup = (group: UserMenuProps) => {
-    console.log("➕ [UI 상태] 그룹 추가:", {
-      id: group.id,
-      text: group.text,
-      type: group.type,
-      isTemp: group.isTemp,
-      isPending: group.isPending,
-    });
-    setUserMenus((prev) => [...prev, group]);
-  };
-
-  const addList = (list: UserMenuProps) => {
-    console.log("➕ [UI 상태] 목록 추가:", {
-      id: list.id,
-      text: list.text,
-      type: list.type,
-      isTemp: list.isTemp,
-      isPending: list.isPending,
-    });
-    setUserMenus((prev) => [...prev, list]);
-  };
-
-  const removeMenu = (id: string) => {
-    console.log("➖ [UI 상태] 메뉴 제거:", { id });
-    setUserMenus((prev) => prev.filter((menu) => menu.id.toString() !== id));
-  };
-
-  const updateMenu = (updatedItem: UserMenuProps) => {
-    console.log("🔄 [UI 상태] 메뉴 업데이트:", {
-      id: updatedItem.id,
-      text: updatedItem.text,
-      isTemp: updatedItem.isTemp,
-      isPending: updatedItem.isPending,
-    });
-    setUserMenus((prev) =>
-      prev.map((menu) =>
-        menu.id.toString() === updatedItem.id.toString() ? updatedItem : menu
-      )
-    );
-  };
 
   const handleDeleteList = async (listId: number) => {
     if (!user?.id) return;
@@ -105,10 +65,10 @@ export default function Sidebar() {
     setUserMenus((prev) => prev.filter((menu) => menu.id !== listId));
 
     try {
-      const { success, error } = await deleteList(user.id, listId);
+      const result = await deleteList(user.id, listId);
 
-      if (!success) {
-        throw new Error(error);
+      if (!result.success) {
+        throw new Error(result.error);
       }
 
       console.log("✅ [목록 삭제] 성공:", { listId });
@@ -125,20 +85,43 @@ export default function Sidebar() {
 
     console.log("📦 [그룹 해제] 시작:", { groupId });
 
-    // 낙관적 UI 업데이트 - 즉시 UI에서 제거
+    // 낙관적 UI 업데이트: 그룹을 제거하고 자식 목록들을 독립 목록으로 변환
     const originalMenus = [...userMenus];
-    setUserMenus((prev) => prev.filter((menu) => menu.id !== groupId));
+    const targetGroup = userMenus.find(menu => menu.id === groupId && menu.type === "group");
+
+    if (!targetGroup) {
+      console.error("해제할 그룹을 찾을 수 없습니다:", groupId);
+      return;
+    }
+
+    // 그룹의 자식 목록들을 독립 목록으로 변환하여 UI 업데이트
+    setUserMenus(prev => {
+      const filteredMenus = prev.filter(menu => menu.id !== groupId);
+      const childLists = targetGroup.children || [];
+
+      // 자식 목록들을 독립 목록으로 추가
+      const independentLists = childLists.map(child => ({
+        ...child,
+        id: child.id,
+        text: child.text,
+        type: "list" as const,
+        color: child.color,
+        count: child.count || 0,
+        isPending: false,
+      }));
+
+      return [...filteredMenus, ...independentLists];
+    });
 
     try {
-      const { success, error } = await dissolveGroup(user.id, groupId);
+      const result = await dissolveGroup(user.id, groupId);
 
-      if (!success) {
-        throw new Error(error);
+      if (!result.success) {
+        throw new Error(result.error);
       }
 
       console.log("✅ [그룹 해제] 성공:", { groupId });
-      // 그룹 해제 후 데이터 다시 로드하여 변경된 목록들 반영
-      await loadUserMenus(user.id);
+      // 성공 시 추가 작업 없음 (이미 낙관적 UI로 처리됨)
     } catch (error) {
       console.error("❌ [그룹 해제] 실패:", error);
       // 실패 시 원상복구
@@ -212,10 +195,7 @@ export default function Sidebar() {
 
       {/* Menu Add Buttons */}
       <MenuAddSection
-        onGroupAdd={addGroup}
-        onListAdd={addList}
-        onMenuRemove={removeMenu}
-        onMenuUpdate={updateMenu}
+        setUserMenus={setUserMenus}
       />
     </aside>
   );

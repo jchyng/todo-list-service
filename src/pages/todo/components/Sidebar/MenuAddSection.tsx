@@ -4,7 +4,6 @@ import ListAddInput from "./ListAddInput";
 import GroupAddToggleBtn from "./GroupAddTogglBtn";
 import SimpleTooltip from "@/components/ui/SimpleTooltip";
 import { useAuthContext } from "@/hooks/useAuthContext";
-import { useOptimistic } from "@/hooks/useOptimistic";
 import { createGroup, createList } from "@/services/todoMenuService";
 import {
   generateTempId,
@@ -12,14 +11,12 @@ import {
   createOptimisticList,
 } from "@/lib/todoMenuUtils";
 import { getRandomColor } from "@/constant/TailwindColor";
+import { toast } from "@/hooks/useToast";
 
 import type { UserMenuProps } from "@/data/SidebarMenuData";
 
 interface MenuAddSectionProps {
-  onGroupAdd: (group: UserMenuProps) => void;
-  onListAdd: (list: UserMenuProps) => void;
-  onMenuRemove: (id: string) => void;
-  onMenuUpdate: (item: UserMenuProps) => void;
+  setUserMenus: React.Dispatch<React.SetStateAction<UserMenuProps[]>>;
 }
 
 // 에러 메시지 상수
@@ -29,48 +26,62 @@ const ERROR_MESSAGES = {
 } as const;
 
 export function MenuAddSection({
-  onGroupAdd,
-  onListAdd,
-  onMenuRemove,
-  onMenuUpdate,
+  setUserMenus,
 }: MenuAddSectionProps) {
   const { user } = useAuthContext();
   const [newListName, setNewListName] = useState("");
   const [newGroupName, setNewGroupName] = useState("");
   const [isAddingGroup, setIsAddingGroup] = useState(false);
 
-  // 낙관적 업데이트 훅
-  const groupOptimistic = useOptimistic(createGroup, {
-    onAdd: onGroupAdd,
-    onRemove: onMenuRemove,
-    onUpdate: onMenuUpdate,
-  });
+  // 단순한 낙관적 UI: userMenus 하나로만 관리
 
-  const listOptimistic = useOptimistic(createList, {
-    onAdd: onListAdd,
-    onRemove: onMenuRemove,
-    onUpdate: onMenuUpdate,
-  });
+  // 시스템 장애인지 확인하는 함수
+  const isSystemError = (error: any): boolean => {
+    // 네트워크 오류 또는 500번대 에러
+    return error.name === 'NetworkError' ||
+           (error.status && error.status >= 500) ||
+           error.message?.includes('Network');
+  };
 
   // 그룹 저장
   const handleGroupSave = useCallback(async () => {
     const trimmedName = newGroupName.trim();
     if (!trimmedName || !user) return;
 
-    // UI 초기화
-    setNewGroupName("");
-    setIsAddingGroup(false);
-
-    // 낙관적 업데이트 실행
+    // 낙관적 업데이트: 임시 그룹 즉시 추가
     const tempId = generateTempId("group");
     const optimisticGroup = createOptimisticGroup(tempId, trimmedName);
 
-    await groupOptimistic.execute(
-      optimisticGroup,
-      [user.id, trimmedName],
-      ERROR_MESSAGES.GROUP_CREATE
-    );
-  }, [newGroupName, user, groupOptimistic]);
+    setUserMenus(prev => [...prev, { ...optimisticGroup, isPending: true }]);
+
+    // UI 초기화 (서버 요청 시작 후)
+    setNewGroupName("");
+    setIsAddingGroup(false);
+
+    try {
+      const result = await createGroup(user.id, trimmedName);
+
+      if (!result.success) throw new Error(result.error);
+
+      // 성공: 낙관적 아이템의 pending 상태만 해제하고 실제 ID로 업데이트
+      setUserMenus(prev =>
+        prev.map(item =>
+          item.id === tempId
+            ? { ...item, isPending: false, id: result.data.id }
+            : item
+        )
+      );
+    } catch (error) {
+      // 실패: 임시 아이템 제거 (롤백)
+      setUserMenus(prev => prev.filter(item => item.id !== tempId));
+
+      // 시스템 장애만 토스트 표시
+      if (isSystemError(error)) {
+        toast.error(ERROR_MESSAGES.GROUP_CREATE);
+      }
+      console.error('Group creation failed:', error);
+    }
+  }, [newGroupName, user, setUserMenus]);
 
   // 그룹 취소
   const handleGroupCancel = useCallback(() => {
@@ -83,22 +94,42 @@ export function MenuAddSection({
     const trimmedName = newListName.trim();
     if (!trimmedName || !user) return;
 
-    // UI 초기화
-    setNewListName("");
-
     // 랜덤 색상 생성
     const randomColor = getRandomColor();
 
-    // 낙관적 업데이트 실행
+    // 낙관적 업데이트: 임시 리스트 즉시 추가
     const tempId = generateTempId("list");
     const optimisticList = createOptimisticList(tempId, trimmedName, randomColor);
 
-    await listOptimistic.execute(
-      optimisticList,
-      [user.id, trimmedName, randomColor, null],
-      ERROR_MESSAGES.LIST_CREATE
-    );
-  }, [newListName, user, listOptimistic]);
+    setUserMenus(prev => [...prev, { ...optimisticList, isPending: true }]);
+
+    // UI 초기화 (서버 요청 시작 후)
+    setNewListName("");
+
+    try {
+      const result = await createList(user.id, trimmedName, randomColor, null);
+
+      if (!result.success) throw new Error(result.error);
+
+      // 성공: 낙관적 아이템의 pending 상태만 해제하고 실제 ID로 업데이트
+      setUserMenus(prev =>
+        prev.map(item =>
+          item.id === tempId
+            ? { ...item, isPending: false, id: result.data.id }
+            : item
+        )
+      );
+    } catch (error) {
+      // 실패: 임시 아이템 제거 (롤백)
+      setUserMenus(prev => prev.filter(item => item.id !== tempId));
+
+      // 시스템 장애만 토스트 표시
+      if (isSystemError(error)) {
+        toast.error(ERROR_MESSAGES.LIST_CREATE);
+      }
+      console.error('List creation failed:', error);
+    }
+  }, [newListName, user, setUserMenus]);
 
   // 리스트 취소
   const handleListCancel = useCallback(() => {

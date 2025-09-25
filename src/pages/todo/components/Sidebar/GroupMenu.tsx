@@ -8,6 +8,7 @@ interface GroupMenuProps {
   isOpen: boolean;
   onToggle: () => void;
   children?: ListMenuProps[];
+  isPending?: boolean;
 }
 
 const GroupMenu: React.FC<GroupMenuProps> = ({
@@ -15,6 +16,7 @@ const GroupMenu: React.FC<GroupMenuProps> = ({
   isOpen,
   onToggle,
   children,
+  isPending = false,
 }) => {
   return (
     <div>
@@ -30,6 +32,7 @@ const GroupMenu: React.FC<GroupMenuProps> = ({
             )}
           </div>
         }
+        className={isPending ? "opacity-50 transition-opacity duration-200" : ""}
       />
 
       {isOpen && children && (
@@ -41,6 +44,7 @@ const GroupMenu: React.FC<GroupMenuProps> = ({
                 dotColor={child.color}
                 text={child.text}
                 count={child.count || 0}
+                isPending={child.isPending}
               />
             </div>
           ))}
