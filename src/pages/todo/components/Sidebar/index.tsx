@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
+import { useParams } from "react-router-dom";
 import { Menu, CircleCheckBig } from "lucide-react";
-import { systemMenus, type UserMenuProps } from "@/data/SidebarMenuData";
+import { systemMenus, type UserMenuProps, type SystemMenuProps } from "@/data/SidebarMenuData";
 import { useAuthContext } from "@/hooks/useAuthContext";
 import {
   getUserMenus,
@@ -15,6 +16,7 @@ import { MenuAddSection } from "./MenuAddSection";
 
 export default function Sidebar() {
   const { user } = useAuthContext();
+  const { listId } = useParams();
   const [userMenus, setUserMenus] = useState<UserMenuProps[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -139,14 +141,21 @@ export default function Sidebar() {
 
       {/* System Menus */}
       <nav>
-        {systemMenus.map((item) => (
-          <SystemMenu
-            key={item.id}
-            icon={item.icon}
-            text={item.text}
-            count={item.count}
-          />
-        ))}
+        {systemMenus.map((item) => {
+          // System 메뉴 활성화 확인
+          const isActive = listId === item.virtualId;
+
+          return (
+            <SystemMenu
+              key={item.id}
+              icon={item.icon}
+              text={item.text}
+              count={item.count}
+              virtualId={item.virtualId}
+              isActive={isActive}
+            />
+          );
+        })}
       </nav>
 
       {/* Separator */}
@@ -183,6 +192,7 @@ export default function Sidebar() {
               menu={item}
               onDeleteList={handleDeleteList}
               onDissolveGroup={handleDissolveGroup}
+              activeListId={listId}
             />
           ))
         )}

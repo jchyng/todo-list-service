@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Trash2, Ungroup } from "lucide-react";
 import ListMenu from "./ListMenu";
 import GroupMenu from "./GroupMenu";
@@ -9,12 +10,14 @@ interface ComponentProps {
   menu: UserMenuProps;
   onDeleteList?: (listId: number) => void;
   onDissolveGroup?: (groupId: number) => void;
+  activeListId?: string;
 }
 
 export default function UserMenu({
   menu,
   onDeleteList,
   onDissolveGroup,
+  activeListId,
 }: ComponentProps) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -37,6 +40,8 @@ export default function UserMenu({
   };
 
   if (menu.type === "list") {
+    const isActive = activeListId === String(menu.id);
+
     return (
       <SimpleDropdown
         triggerType="contextmenu"
@@ -49,13 +54,16 @@ export default function UserMenu({
           },
         ]}
       >
-        <ListMenu
-          dotSize={2}
-          dotColor={menu.color || "gray"}
-          text={menu.text}
-          count={menu.count || 0}
-          isPending={menu.isPending}
-        />
+        <Link to={`/todo/${menu.id}`} className="block">
+          <ListMenu
+            dotSize={2}
+            dotColor={menu.color || "gray"}
+            text={menu.text}
+            count={menu.count || 0}
+            isPending={menu.isPending}
+            isActive={isActive}
+          />
+        </Link>
       </SimpleDropdown>
     );
   }
@@ -78,6 +86,7 @@ export default function UserMenu({
         onToggle={toggleOpen}
         children={menu.children}
         isPending={menu.isPending}
+        activeListId={activeListId}
       />
     </SimpleDropdown>
   );

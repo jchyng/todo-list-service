@@ -1,4 +1,5 @@
 import { ChevronDown, ChevronRight, Inbox } from "lucide-react";
+import { Link } from "react-router-dom";
 import ListMenu from "./ListMenu";
 import BaseMenu from "./BaseMenu";
 import type { ListMenuProps } from "@/data/SidebarMenuData";
@@ -9,6 +10,7 @@ interface GroupMenuProps {
   onToggle: () => void;
   children?: ListMenuProps[];
   isPending?: boolean;
+  activeListId?: string;
 }
 
 const GroupMenu: React.FC<GroupMenuProps> = ({
@@ -17,6 +19,7 @@ const GroupMenu: React.FC<GroupMenuProps> = ({
   onToggle,
   children,
   isPending = false,
+  activeListId,
 }) => {
   return (
     <div>
@@ -37,17 +40,24 @@ const GroupMenu: React.FC<GroupMenuProps> = ({
 
       {isOpen && children && (
         <div className="ml-6 border-l border-gray-300">
-          {children.map((child) => (
-            <div key={child.id}>
-              <ListMenu
-                dotSize={2}
-                dotColor={child.color}
-                text={child.text}
-                count={child.count || 0}
-                isPending={child.isPending}
-              />
-            </div>
-          ))}
+          {children.map((child) => {
+            const isActive = activeListId === String(child.id);
+
+            return (
+              <div key={child.id}>
+                <Link to={`/todo/${child.id}`} className="block">
+                  <ListMenu
+                    dotSize={2}
+                    dotColor={child.color}
+                    text={child.text}
+                    count={child.count || 0}
+                    isPending={child.isPending}
+                    isActive={isActive}
+                  />
+                </Link>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

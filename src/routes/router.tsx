@@ -9,7 +9,7 @@ export function AppRouter() {
     <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route
-        path="/todo"
+        path="/todo/:listId"
         element={
           <ProtectedRoute>
             <TodoPage />

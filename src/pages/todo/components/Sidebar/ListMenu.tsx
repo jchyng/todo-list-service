@@ -7,6 +7,7 @@ interface ListMenuProps {
   text: string;
   count: number;
   isPending?: boolean;
+  isActive?: boolean;
 }
 
 export default function ListMenu({
@@ -15,13 +16,17 @@ export default function ListMenu({
   text,
   count,
   isPending = false,
+  isActive = false,
 }: ListMenuProps) {
   return (
     <BaseMenu
       icon={<ColorDot size={dotSize} color={dotColor} />}
       text={text}
       rightContent={<span className="text-muted-foreground">{count}</span>}
-      className={isPending ? "opacity-50 transition-opacity duration-200" : ""}
+      className={`
+        ${isPending ? "opacity-50 transition-opacity duration-200" : ""}
+        ${isActive ? "bg-accent text-accent-foreground border-l-4 border-blue-500" : ""}
+      `.trim()}
     />
   );
 }
