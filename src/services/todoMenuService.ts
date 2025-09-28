@@ -179,3 +179,32 @@ export async function getUserMenus(userId: string): Promise<ServiceResult> {
   if (error) return handleServiceError(error);
   return { success: true, data: data || [] };
 }
+
+export async function getListById(userId: string, listId: number): Promise<ServiceResult> {
+  const { data, error } = await supabase
+    .from("lists")
+    .select("id, name, color, is_system")
+    .eq("id", listId)
+    .eq("user_id", userId)
+    .single();
+
+  if (error) return handleServiceError(error);
+  return { success: true, data };
+}
+
+export async function updateListColor(
+  userId: string,
+  listId: number,
+  color: TailwindColor
+): Promise<ServiceResult> {
+  const { data, error } = await supabase
+    .from("lists")
+    .update({ color })
+    .eq("id", listId)
+    .eq("user_id", userId)
+    .select("id, name, color, is_system")
+    .single();
+
+  if (error) return handleServiceError(error);
+  return { success: true, data };
+}
