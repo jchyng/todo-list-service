@@ -455,3 +455,147 @@ export async function duplicateTodoItem(
 
   return createTodoItem(_userId, duplicateData);
 }
+
+// System Menu용 함수들
+
+/**
+ * 오늘 할 일 조회 (added_to_my_day_date가 오늘인 작업)
+ */
+export async function getTodayTodoItems(
+  _userId: string
+): Promise<ServiceResult<TodoItem[]>> {
+  try {
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD 형식
+
+    const { data, error } = await supabase
+      .from("items")
+      .select("*")
+      .eq("user_id", _userId)
+      .eq("added_to_my_day_date", today)
+      .order("position");
+
+    if (error) {
+      console.error('getTodayTodoItems query failed:', error);
+      return handleServiceError(error);
+    }
+
+    // 반복 설정을 UI 형태로 변환
+    const parsedData = await Promise.all(
+      (data || []).map(async (item) => {
+        let repeat_config;
+        let recurrence_rule;
+
+        if (item.recurrence_id) {
+          try {
+            const ruleResult = await supabase
+              .from("recurrence_rule")
+              .select("*")
+              .eq("id", item.recurrence_id)
+              .single();
+
+            if (ruleResult.data) {
+              recurrence_rule = ruleResult.data;
+              repeat_config = convertRecurrenceRuleToRepeatConfig(ruleResult.data);
+            }
+          } catch (ruleError) {
+            console.warn('Failed to fetch recurrence rule:', ruleError);
+          }
+        }
+
+        return {
+          ...item,
+          repeat_config,
+          recurrence_rule,
+        };
+      })
+    );
+
+    return { success: true, data: parsedData };
+  } catch (error) {
+    console.error('Get today todo items error:', error);
+    return { success: false, error: "오늘 할 일 조회 중 오류가 발생했습니다" };
+  }
+}
+
+/**
+ * 중요 작업 조회 (is_important가 true인 작업)
+ */
+export async function getImportantTodoItems(
+  _userId: string
+): Promise<ServiceResult<TodoItem[]>> {
+  try {
+    const { data, error } = await supabase
+      .from("items")
+      .select("*")
+      .eq("user_id", _userId)
+      .eq("is_important", true)
+      .order("position");
+
+    if (error) {
+      console.error('getImportantTodoItems query failed:', error);
+      return handleServiceError(error);
+    }
+
+    // 반복 설정을 UI 형태로 변환
+    const parsedData = await Promise.all(
+      (data || []).map(async (item) => {
+        let repeat_config;
+        let recurrence_rule;
+
+        if (item.recurrence_id) {
+          try {
+            const ruleResult = await supabase
+              .from("recurrence_rule")
+              .select("*")
+              .eq("id", item.recurrence_id)
+              .single();
+
+            if (ruleResult.data) {
+              recurrence_rule = ruleResult.data;
+              repeat_config = convertRecurrenceRuleToRepeatConfig(ruleResult.data);
+            }
+          } catch (ruleError) {
+            console.warn('Failed to fetch recurrence rule:', ruleError);
+          }
+        }
+
+        return {
+          ...item,
+          repeat_config,
+          recurrence_rule,
+        };
+      })
+    );
+
+    return { success: true, data: parsedData };
+  } catch (error) {
+    console.error('Get important todo items error:', error);
+    return { success: false, error: "중요 작업 조회 중 오류가 발생했습니다" };
+  }
+}
+
+/**
+ * 시스템 리스트 조회 (is_system이 true인 list)
+ */
+export async function getSystemList(
+  _userId: string
+): Promise<ServiceResult<{ id: number; name: string; color: string; is_system: boolean }>> {
+  try {
+    const { data, error } = await supabase
+      .from("lists")
+      .select("id, name, color, is_system")
+      .eq("user_id", _userId)
+      .eq("is_system", true)
+      .single();
+
+    if (error) {
+      console.error('getSystemList query failed:', error);
+      return handleServiceError(error);
+    }
+
+    return { success: true, data };
+  } catch (error) {
+    console.error('Get system list error:', error);
+    return { success: false, error: "시스템 리스트 조회 중 오류가 발생했습니다" };
+  }
+}

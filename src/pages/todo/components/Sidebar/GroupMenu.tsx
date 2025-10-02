@@ -26,14 +26,15 @@ const GroupMenu: React.FC<GroupMenuProps> = ({
       <BaseMenu
         icon={<Inbox className="w-4 h-4 text-gray-500" />}
         text={text}
+        onClick={onToggle}
         rightContent={
-          <div onClick={onToggle} className="cursor-pointer">
+          <>
             {isOpen ? (
               <ChevronDown className="w-4 h-4" />
             ) : (
               <ChevronRight className="w-4 h-4" />
             )}
-          </div>
+          </>
         }
         className={isPending ? "opacity-50 transition-opacity duration-200" : ""}
       />

@@ -4,10 +4,11 @@ import { Header } from "@/components/Header";
 import Sidebar from "./components/Sidebar";
 import ContentHeader from "./components/ContentHeader";
 import TodoList from "./components/TodoList";
+import SystemTodoList from "./components/SystemTodoList";
 import TodoDetailPanel from "./components/TodoDetailPanel";
 import { systemMenus, type SystemMenuProps } from "@/data/SidebarMenuData";
 import { getListById, updateListColor } from "@/services/todoMenuService";
-import { updateTodoItem, deleteTodoItem, getTodoItems } from "@/services/todoItemService";
+import { updateTodoItem, deleteTodoItem, getTodoItems, getSystemList, getTodayTodoItems, getImportantTodoItems } from "@/services/todoItemService";
 import { useAuth } from "@/hooks/useAuth";
 import { TodoMenuProvider } from "@/contexts/TodoMenuContext";
 import { cn } from "@/lib/utils";
@@ -18,6 +19,7 @@ export default function TodoPage() {
   const { listId } = useParams();
   const { user } = useAuth();
   const [listData, setListData] = useState(null);
+  const [systemListId, setSystemListId] = useState<number | null>(null); // "작업" 메뉴의 실제 list ID
   const [isLoading, setIsLoading] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
   const [selectedItem, setSelectedItem] = useState<TodoItem | null>(null);
@@ -42,6 +44,12 @@ export default function TodoPage() {
 
   const menuInfo = getMenuType(listId);
 
+  // listId 변경 시 상세 패널 닫기
+  useEffect(() => {
+    setSelectedItemId(null);
+    setSelectedItem(null);
+  }, [listId]);
+
   // ContentHeader props를 안전하게 생성하는 헬퍼 함수
   const getContentHeaderProps = () => ({
     type: menuInfo.type as "system" | "list" | "none" | "unknown",
@@ -49,6 +57,24 @@ export default function TodoPage() {
     listData: menuInfo.type === "list" ? listData : undefined,
     onColorUpdate: handleColorUpdate,
   });
+
+  // "작업" 메뉴인 경우 system list ID 가져오기
+  useEffect(() => {
+    if (menuInfo.type === "system" && (menuInfo.data as SystemMenuProps)?.virtualId === "tasks" && user?.id) {
+      setIsLoading(true);
+      getSystemList(user.id)
+        .then((result) => {
+          if (result.success && result.data) {
+            setSystemListId(result.data.id);
+          }
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
+    } else {
+      setSystemListId(null);
+    }
+  }, [menuInfo.type, menuInfo.data, user?.id]);
 
   // 실제 리스트인 경우 데이터 가져오기
   useEffect(() => {
@@ -97,11 +123,29 @@ export default function TodoPage() {
 
   // 선택된 아이템 로드
   const loadSelectedItem = async (itemId: number) => {
-    if (!user?.id || !menuInfo.data?.id) return;
+    if (!user?.id) return;
 
     try {
-      const result = await getTodoItems(user.id, menuInfo.data.id);
-      if (result.success && result.data) {
+      let result;
+
+      // system menu 처리
+      if (menuInfo.type === "system") {
+        const virtualId = (menuInfo.data as SystemMenuProps)?.virtualId;
+
+        if (virtualId === "today") {
+          result = await getTodayTodoItems(user.id);
+        } else if (virtualId === "important") {
+          result = await getImportantTodoItems(user.id);
+        } else if (virtualId === "tasks" && systemListId) {
+          result = await getTodoItems(user.id, systemListId);
+        }
+      }
+      // 일반 list 처리
+      else if (menuInfo.type === "list" && menuInfo.data?.id) {
+        result = await getTodoItems(user.id, menuInfo.data.id);
+      }
+
+      if (result?.success && result.data) {
         const item = result.data.find(item => item.id === itemId);
         setSelectedItem(item || null);
       }
@@ -294,12 +338,39 @@ export default function TodoPage() {
                   </div>
                 )}
                 {!isLoading && menuInfo.type === "system" && (
-                  <div className="flex flex-col items-center justify-center h-full text-gray-500">
-                    <h3 className="text-lg font-medium mb-2">
-                      {(menuInfo.data as SystemMenuProps)?.text} 기능은 준비 중입니다
-                    </h3>
-                    <p className="text-sm">곧 사용하실 수 있습니다</p>
-                  </div>
+                  <>
+                    {/* "작업" 메뉴: 실제 system list 렌더링 */}
+                    {(menuInfo.data as SystemMenuProps)?.virtualId === "tasks" && systemListId && (
+                      <div className="h-full overflow-y-auto">
+                        <TodoList
+                          listId={systemListId}
+                          selectedItemId={selectedItemId}
+                          selectedItem={selectedItem}
+                          onSelectItem={handleSelectItem}
+                          onToggleComplete={handleToggleComplete}
+                          onToggleImportant={handleToggleImportant}
+                          onItemUpdate={handleItemUpdate}
+                          className="px-6 py-4"
+                        />
+                      </div>
+                    )}
+                    {/* "오늘 할 일", "중요" 메뉴: SystemTodoList 렌더링 */}
+                    {((menuInfo.data as SystemMenuProps)?.virtualId === "today" ||
+                      (menuInfo.data as SystemMenuProps)?.virtualId === "important") && (
+                      <div className="h-full overflow-y-auto">
+                        <SystemTodoList
+                          virtualId={(menuInfo.data as SystemMenuProps).virtualId}
+                          selectedItemId={selectedItemId}
+                          selectedItem={selectedItem}
+                          onSelectItem={handleSelectItem}
+                          onToggleComplete={handleToggleComplete}
+                          onToggleImportant={handleToggleImportant}
+                          onItemUpdate={handleItemUpdate}
+                          className="px-6 py-4"
+                        />
+                      </div>
+                    )}
+                  </>
                 )}
                 {!isLoading && menuInfo.type === "none" && (
                   <div className="flex flex-col items-center justify-center h-full text-gray-500">

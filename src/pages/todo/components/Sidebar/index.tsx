@@ -1,11 +1,11 @@
-import { useParams } from "react-router-dom";
-import { Menu, CircleCheckBig } from "lucide-react";
+import { useTodoMenuContext } from "@/contexts/TodoMenuContext";
 import { systemMenus } from "@/data/SidebarMenuData";
 import { useAuthContext } from "@/hooks/useAuthContext";
-import { useTodoMenuContext } from "@/contexts/TodoMenuContext";
+import { CircleCheckBig } from "lucide-react";
+import { useParams } from "react-router-dom";
+import { MenuAddSection } from "./MenuAddSection";
 import SystemMenu from "./SystemMenu";
 import UserMenu from "./UserMenu";
-import { MenuAddSection } from "./MenuAddSection";
 
 export default function Sidebar() {
   const { user } = useAuthContext();
@@ -17,7 +17,7 @@ export default function Sidebar() {
     loadUserMenus,
     deleteMenu,
     dissolveMenuGroup,
-    setUserMenus
+    setUserMenus,
   } = useTodoMenuContext();
 
   const handleDeleteList = async (listId: number) => {
@@ -32,19 +32,10 @@ export default function Sidebar() {
 
   return (
     <aside
-      className="w-64 vh-100 border-r border-border bg-gray-50 dark:bg-gray-900"
+      className="pt-3 w-64 vh-100 border-r border-border bg-gray-50 dark:bg-gray-900"
       role="navigation"
       aria-label="메인 네비게이션"
     >
-      {/* Spread Button */}
-      <button
-        className="ml-1 p-2 rounded-md cursor-pointer"
-        aria-label="메뉴 토글"
-        type="button"
-      >
-        <Menu size={16} />
-      </button>
-
       {/* System Menus */}
       <nav aria-label="시스템 메뉴">
         {systemMenus.map((item) => {
@@ -112,9 +103,7 @@ export default function Sidebar() {
       </div>
 
       {/* Menu Add Buttons */}
-      <MenuAddSection
-        setUserMenus={setUserMenus}
-      />
+      <MenuAddSection setUserMenus={setUserMenus} />
     </aside>
   );
 }
