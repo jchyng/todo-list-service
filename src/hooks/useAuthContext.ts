@@ -1,13 +1,20 @@
 import { useContext, createContext } from "react";
-import type { User, Session } from "@supabase/supabase-js";
+import type { User, Session, AuthError, OAuthResponse } from "@supabase/supabase-js";
+
+type OAuthProvider = "google" | "kakao" | "github";
+
+interface OAuthResult {
+  data?: OAuthResponse;
+  error?: AuthError | Error | null;
+}
 
 export interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
   signInWithOAuth: (params: {
-    providerName: "google" | "kakao" | "github";
-  }) => Promise<{ data?: any; error?: any }>;
+    providerName: OAuthProvider;
+  }) => Promise<OAuthResult>;
   signOut: () => Promise<void>;
 }
 

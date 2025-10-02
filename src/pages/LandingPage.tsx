@@ -8,7 +8,7 @@ export default function LandingPage() {
 
   useEffect(() => {
     if (user && !loading) {
-      navigate("/todo");
+      navigate("/todo/today");
     }
   }, [user, loading, navigate]);
 

@@ -1,14 +1,17 @@
-import { createContext, useContext, useState, useCallback, ReactNode, useEffect } from "react";
+import { createContext, useContext, useState, useCallback, useEffect, startTransition, type ReactNode } from "react";
 import type { UserMenuProps } from "@/data/SidebarMenuData";
 import type { TailwindColor } from "@/constant/TailwindColor";
 import {
   getUserMenus,
   updateListColor,
+  updateListName,
+  updateGroupName,
   deleteList,
   dissolveGroup
 } from "@/services/todoMenuService";
 import { transformRpcMenuData } from "@/lib/todoMenuUtils";
 import { toast } from "@/hooks/useToast";
+import { contextLogger } from "@/lib/logger";
 
 interface TodoMenuContextType {
   userMenus: UserMenuProps[];
@@ -16,6 +19,7 @@ interface TodoMenuContextType {
   error: string | null;
   loadUserMenus: (userId: string) => Promise<void>;
   updateMenuColor: (listId: number, color: TailwindColor, userId: string) => Promise<void>;
+  updateMenuName: (menuId: number, name: string, userId: string, menuType: "list" | "group") => Promise<void>;
   deleteMenu: (listId: number, userId: string) => Promise<void>;
   dissolveMenuGroup: (groupId: number, userId: string) => Promise<void>;
   setUserMenus: React.Dispatch<React.SetStateAction<UserMenuProps[]>>;
@@ -35,7 +39,7 @@ export function TodoMenuProvider({ children, userId }: TodoMenuProviderProps) {
 
   // 사용자 메뉴 데이터 로드
   const loadUserMenus = useCallback(async (userId: string) => {
-    console.log("🔄 [Context] 사용자 메뉴 로드 시작:", userId);
+    contextLogger.start("사용자 메뉴 로드 시작", { userId });
     setIsLoading(true);
     setError(null);
 
@@ -48,12 +52,12 @@ export function TodoMenuProvider({ children, userId }: TodoMenuProviderProps) {
         const transformedMenus = transformRpcMenuData(result.data);
         setUserMenus(transformedMenus);
 
-        console.log("✅ [Context] 메뉴 로드 완료:", {
+        contextLogger.success("메뉴 로드 완료", {
           totalMenus: transformedMenus.length,
         });
       }
     } catch (err) {
-      console.error("❌ [Context] 메뉴 로드 실패:", err);
+      contextLogger.error("메뉴 로드 실패", { error: err });
       setError("메뉴 데이터를 불러오는데 실패했습니다.");
       toast.error("메뉴 데이터를 불러오는데 실패했습니다.");
     } finally {
@@ -65,28 +69,30 @@ export function TodoMenuProvider({ children, userId }: TodoMenuProviderProps) {
   const updateMenuColor = useCallback(async (listId: number, color: TailwindColor, userId: string) => {
     // 낙관적 업데이트 - UI 즉시 반영
     const originalMenus = [...userMenus];
-    setUserMenus(prev => prev.map(menu => {
-      if (menu.type === "list" && menu.id === listId) {
-        return { ...menu, color };
-      }
-      // 그룹 내 리스트 업데이트
-      if (menu.type === "group" && menu.children) {
-        const updatedChildren = menu.children.map(child =>
-          child.id === listId ? { ...child, color } : child
-        );
-        return { ...menu, children: updatedChildren };
-      }
-      return menu;
-    }));
+    startTransition(() => {
+      setUserMenus(prev => prev.map(menu => {
+        if (menu.type === "list" && menu.id === listId) {
+          return { ...menu, color };
+        }
+        // 그룹 내 리스트 업데이트
+        if (menu.type === "group" && menu.children) {
+          const updatedChildren = menu.children.map(child =>
+            child.id === listId ? { ...child, color } : child
+          );
+          return { ...menu, children: updatedChildren };
+        }
+        return menu;
+      }));
+    });
 
     try {
       const result = await updateListColor(userId, listId, color);
       if (!result.success) {
         throw new Error(result.error);
       }
-      console.log("✅ [Context] 색상 업데이트 성공:", { listId, color });
+      contextLogger.success("색상 업데이트 성공", { listId, color });
     } catch (error) {
-      console.error("❌ [Context] 색상 업데이트 실패:", error);
+      contextLogger.error("색상 업데이트 실패", { error, listId, color });
       // 실패 시 롤백
       setUserMenus(originalMenus);
       toast.error("색상 변경에 실패했습니다. 다시 시도해주세요.");
@@ -94,19 +100,59 @@ export function TodoMenuProvider({ children, userId }: TodoMenuProviderProps) {
     }
   }, [userMenus]);
 
+  // 메뉴 이름 업데이트
+  const updateMenuName = useCallback(async (menuId: number, name: string, userId: string, menuType: "list" | "group") => {
+    // 낙관적 업데이트 - UI 즉시 반영
+    const originalMenus = [...userMenus];
+    startTransition(() => {
+      setUserMenus(prev => prev.map(menu => {
+        if (menu.id === menuId && menu.type === menuType) {
+          return { ...menu, text: name };
+        }
+        // 그룹 내 리스트 업데이트
+        if (menu.type === "group" && menu.children && menuType === "list") {
+          const updatedChildren = menu.children.map(child =>
+            child.id === menuId ? { ...child, text: name } : child
+          );
+          return { ...menu, children: updatedChildren };
+        }
+        return menu;
+      }));
+    });
+
+    try {
+      const result = menuType === "list"
+        ? await updateListName(userId, menuId, name)
+        : await updateGroupName(userId, menuId, name);
+
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      contextLogger.success(`${menuType === "list" ? "목록" : "그룹"} 이름 업데이트 성공`, { menuId, name, menuType });
+    } catch (error) {
+      contextLogger.error(`${menuType === "list" ? "목록" : "그룹"} 이름 업데이트 실패`, { error, menuId, name, menuType });
+      // 실패 시 롤백
+      setUserMenus(originalMenus);
+      toast.error("이름 변경에 실패했습니다. 다시 시도해주세요.");
+      throw error;
+    }
+  }, [userMenus]);
+
   // 메뉴 삭제
   const deleteMenu = useCallback(async (listId: number, userId: string) => {
     const originalMenus = [...userMenus];
-    setUserMenus(prev => prev.filter(menu => menu.id !== listId));
+    startTransition(() => {
+      setUserMenus(prev => prev.filter(menu => menu.id !== listId));
+    });
 
     try {
       const result = await deleteList(userId, listId);
       if (!result.success) {
         throw new Error(result.error);
       }
-      console.log("✅ [Context] 목록 삭제 성공:", { listId });
+      contextLogger.success("목록 삭제 성공", { listId });
     } catch (error) {
-      console.error("❌ [Context] 목록 삭제 실패:", error);
+      contextLogger.error("목록 삭제 실패", { error, listId });
       setUserMenus(originalMenus);
       toast.error("목록 삭제에 실패했습니다. 다시 시도해주세요.");
     }
@@ -118,25 +164,27 @@ export function TodoMenuProvider({ children, userId }: TodoMenuProviderProps) {
     const targetGroup = userMenus.find(menu => menu.id === groupId && menu.type === "group");
 
     if (!targetGroup) {
-      console.error("해제할 그룹을 찾을 수 없습니다:", groupId);
+      contextLogger.error("해제할 그룹을 찾을 수 없습니다", { groupId });
       return;
     }
 
-    setUserMenus(prev => {
-      const filteredMenus = prev.filter(menu => menu.id !== groupId);
-      const childLists = targetGroup.children || [];
+    startTransition(() => {
+      setUserMenus(prev => {
+        const filteredMenus = prev.filter(menu => menu.id !== groupId);
+        const childLists = targetGroup.children || [];
 
-      const independentLists = childLists.map(child => ({
-        ...child,
-        id: child.id,
-        text: child.text,
-        type: "list" as const,
-        color: child.color,
-        count: child.count || 0,
-        isPending: false,
-      }));
+        const independentLists = childLists.map(child => ({
+          ...child,
+          id: child.id,
+          text: child.text,
+          type: "list" as const,
+          color: child.color,
+          count: child.count || 0,
+          isPending: false,
+        }));
 
-      return [...filteredMenus, ...independentLists];
+        return [...filteredMenus, ...independentLists];
+      });
     });
 
     try {
@@ -144,9 +192,9 @@ export function TodoMenuProvider({ children, userId }: TodoMenuProviderProps) {
       if (!result.success) {
         throw new Error(result.error);
       }
-      console.log("✅ [Context] 그룹 해제 성공:", { groupId });
+      contextLogger.success("그룹 해제 성공", { groupId });
     } catch (error) {
-      console.error("❌ [Context] 그룹 해제 실패:", error);
+      contextLogger.error("그룹 해제 실패", { error, groupId });
       setUserMenus(originalMenus);
       toast.error("그룹 해제에 실패했습니다. 다시 시도해주세요.");
     }
@@ -165,6 +213,7 @@ export function TodoMenuProvider({ children, userId }: TodoMenuProviderProps) {
     error,
     loadUserMenus,
     updateMenuColor,
+    updateMenuName,
     deleteMenu,
     dissolveMenuGroup,
     setUserMenus,

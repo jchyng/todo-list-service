@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 import { createDefaultSystemList } from "@/services/todoMenuService";
 import type { User, Session } from "@supabase/supabase-js";
+import { authLogger } from "@/lib/logger";
 
 // -------------------------------------------------------------- useAuth Hook
 
@@ -36,7 +37,7 @@ export function useAuth() {
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       setState(session);
 
-      console.log("Auth state changed:", { event, session });
+      authLogger.info("Auth state changed", { event, hasSession: !!session });
       // 사용자가 로그인한 경우 신규 사용자 여부를 확인하고 신규 사용자에게 필요한 로직 실행
       if (event === "SIGNED_IN" && session?.user) {
         // await을 사용하면 기다려야 하기 때문에 then() 사용으로 기다리지 않고 비동기로 처리 (avatar 렌더링 지연 방지)
@@ -75,7 +76,7 @@ export function useAuth() {
 
       return { data };
     } catch (error) {
-      console.error("로그인 실패:", error);
+      authLogger.error("로그인 실패", { error, providerName });
       return { error };
     } finally {
       setLoading(false);
@@ -89,7 +90,7 @@ export function useAuth() {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
     } catch (error) {
-      console.error("로그아웃 실패:", error);
+      authLogger.error("로그아웃 실패", { error });
     } finally {
       setLoading(false);
     }
@@ -124,7 +125,7 @@ const checkIfNewUser = async (): Promise<boolean> => {
 
     return existingUser ? false : true;
   } catch (error) {
-    console.error("신규 사용자 확인 중 오류:", error);
+    authLogger.error("신규 사용자 확인 중 오류", { error });
     return false;
   }
 };
@@ -155,7 +156,7 @@ const signUpWithOAuth = async () => {
 
     if (error) throw error;
   } catch (error) {
-    console.error("❌ 사용자 정보 저장 실패:", error);
+    authLogger.error("사용자 정보 저장 실패", { error });
     throw error;
   }
 };

@@ -1,6 +1,26 @@
-export type ServiceResult<T = any> = { success: true; data?: T } | { success: false; error: string };
+export type ServiceResult<T = unknown> = { success: true; data?: T } | { success: false; error: string };
 
-export const handleServiceError = (error: any): ServiceResult => ({
+interface ErrorWithMessage {
+  message: string;
+}
+
+interface ErrorWithName {
+  name: string;
+  message?: string;
+}
+
+type ErrorLike = ErrorWithMessage | ErrorWithName | string | null | undefined;
+
+function getErrorMessage(error: ErrorLike): string {
+  if (typeof error === 'string') return error;
+  if (error && typeof error === 'object') {
+    if ('message' in error && error.message) return error.message;
+    if ('name' in error && error.name) return error.name;
+  }
+  return "Unknown error occurred";
+}
+
+export const handleServiceError = (error: ErrorLike): ServiceResult => ({
   success: false,
-  error: error?.message || "Unknown error occurred"
+  error: getErrorMessage(error)
 });

@@ -1,10 +1,18 @@
--- users 테이블
+-- ======================================
+-- 기본 테이블 정의
+-- ======================================
+
+-- 사용자 프로필 테이블
 CREATE TABLE users (
     id UUID PRIMARY KEY,                         -- auth.users.id와 동일
     isInitialized BOOLEAN DEFAULT FALSE          -- 기본 시스템 메뉴 생성 여부
 );
 
--- 그룹 테이블
+-- ======================================
+-- 할 일 구조 테이블
+-- ======================================
+
+-- 그룹 테이블 (메뉴의 상위 카테고리)
 CREATE TABLE groups (
     id BIGSERIAL PRIMARY KEY,
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -13,7 +21,7 @@ CREATE TABLE groups (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 리스트 테이블
+-- 리스트 테이블 (실제 할 일을 담는 컨테이너)
 CREATE TABLE lists (
     id BIGSERIAL PRIMARY KEY,
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -25,21 +33,7 @@ CREATE TABLE lists (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 아이템 테이블
-CREATE TABLE items (
-    id BIGSERIAL PRIMARY KEY,
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    list_id BIGINT NOT NULL REFERENCES lists(id) ON DELETE CASCADE,
-    title VARCHAR(255) NOT NULL,
-    description TEXT,
-    is_completed BOOLEAN DEFAULT FALSE,
-    position VARCHAR(50) NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW(),
-    completed_at TIMESTAMPTZ
-);
-
--- 메뉴 position 관리 테이블 (group과 list의 position 통합 관리)
+-- 메뉴 position 관리 테이블 (group과 list의 순서 통합 관리)
 CREATE TABLE menu_positions (
     id BIGSERIAL PRIMARY KEY,
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -53,95 +47,99 @@ CREATE TABLE menu_positions (
     CONSTRAINT menu_positions_unique_user_position UNIQUE (user_id, position)
 );
 
--- CASCADE 관계를 위한 트리거 함수
-CREATE OR REPLACE FUNCTION delete_menu_position_on_item_delete()
-RETURNS TRIGGER AS $$
-BEGIN
-    DELETE FROM menu_positions
-    WHERE item_type = TG_ARGV[0] AND item_id = OLD.id;
-    RETURN OLD;
-END;
-$$ LANGUAGE plpgsql;
+-- ======================================
+-- 반복 규칙 테이블
+-- ======================================
 
--- groups 삭제 시 menu_positions에서 자동 삭제
-CREATE TRIGGER delete_group_position
-    AFTER DELETE ON groups
-    FOR EACH ROW
-    EXECUTE FUNCTION delete_menu_position_on_item_delete('group');
+-- 반복 일정 규칙 정의
+CREATE TABLE recurrence_rule (
+    id BIGSERIAL PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    frequency TEXT NOT NULL CHECK (frequency IN ('DAILY','WEEKLY','MONTHLY','YEARLY','CUSTOM')),
+    interval INTEGER DEFAULT 1,
+    by_day VARCHAR(20),
+    by_month_day VARCHAR(50),
+    until TIMESTAMPTZ,
+    count INTEGER,
+    weekdays_only BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
 
--- lists 삭제 시 menu_positions에서 자동 삭제
-CREATE TRIGGER delete_list_position
-    AFTER DELETE ON lists
-    FOR EACH ROW
-    EXECUTE FUNCTION delete_menu_position_on_item_delete('list');
+-- 반복 예외 처리 테이블 (특정 날짜 제외)
+CREATE TABLE recurrence_exceptions (
+    id BIGSERIAL PRIMARY KEY,
+    recurrence_id BIGINT NOT NULL REFERENCES recurrence_rule(id) ON DELETE CASCADE,
+    exception_date DATE NOT NULL,
+    exception_type TEXT NOT NULL CHECK (exception_type IN ('deleted', 'modified', 'completed')),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
 
+    -- 제약조건: 같은 반복 규칙에서 같은 날짜 중복 방지
+    CONSTRAINT recurrence_exceptions_unique_date UNIQUE (recurrence_id, exception_date)
+);
 
--- 인덱스 생성
+-- ======================================
+-- 할 일 아이템 테이블
+-- ======================================
+
+-- 개별 할 일 아이템
+CREATE TABLE items (
+    id BIGSERIAL PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    list_id BIGINT NOT NULL REFERENCES lists(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    is_completed BOOLEAN DEFAULT FALSE,
+    is_important BOOLEAN DEFAULT FALSE,
+    recurrence_id BIGINT REFERENCES recurrence_rule(id) ON DELETE CASCADE,
+    due_date date,
+    added_to_my_day_date DATE,
+    position VARCHAR(50) NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    completed_at TIMESTAMPTZ
+);
+
+-- ======================================
+-- 성능 최적화 인덱스
+-- ======================================
+
+-- 사용자별 데이터 조회 최적화
 CREATE INDEX idx_groups_user_id ON groups(user_id);
 CREATE INDEX idx_lists_user_id ON lists(user_id);
+CREATE INDEX idx_items_user_id ON items(user_id);
+
+-- 계층 구조 조회 최적화
 CREATE INDEX idx_lists_group_id ON lists(group_id);
+CREATE INDEX idx_items_list_id ON items(list_id);
+
+-- Position 기반 정렬 최적화
 CREATE INDEX idx_items_list_id_position ON items(list_id, position);
 CREATE INDEX idx_menu_positions_user_position ON menu_positions(user_id, position);
 CREATE INDEX idx_menu_positions_item ON menu_positions(item_type, item_id);
 
+-- 반복 규칙 조회 최적화
+CREATE INDEX idx_recurrence_rule_user_id ON recurrence_rule(user_id);
+CREATE INDEX idx_items_recurrence_id ON items(recurrence_id);
 
+-- 반복 예외 조회 최적화
+CREATE INDEX idx_recurrence_exceptions_recurrence_id ON recurrence_exceptions(recurrence_id);
+CREATE INDEX idx_recurrence_exceptions_date ON recurrence_exceptions(exception_date);
+
+-- 날짜 기반 조회 최적화
+CREATE INDEX idx_items_due_date ON items(due_date);
+CREATE INDEX idx_items_completed_at ON items(completed_at);
+CREATE INDEX idx_items_my_day_date ON items(added_to_my_day_date) WHERE added_to_my_day_date IS NOT NULL;
 
 -- ======================================
--- RLS (Row Level Security) 정책 설정
+-- 참고사항
 -- ======================================
-
--- RLS 활성화
-ALTER TABLE users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE groups ENABLE ROW LEVEL SECURITY;
-ALTER TABLE lists ENABLE ROW LEVEL SECURITY;
-ALTER TABLE items ENABLE ROW LEVEL SECURITY;
-ALTER TABLE menu_positions ENABLE ROW LEVEL SECURITY;
-
--- users 정책 (INSERT/SELECT/UPDATE/DELETE 분리)
-CREATE POLICY "Users can insert their profile" ON users FOR INSERT WITH CHECK (auth.uid() = id);
-CREATE POLICY "Users can view their profile" ON users FOR SELECT USING (auth.uid() = id);
-CREATE POLICY "Users can update their profile" ON users FOR UPDATE USING (auth.uid() = id);
-CREATE POLICY "Users can delete their profile" ON users FOR DELETE USING (auth.uid() = id);
-
--- groups 정책 (INSERT/SELECT/UPDATE/DELETE 분리)
-CREATE POLICY "Users can insert their groups" ON groups FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users can view their groups" ON groups FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Users can update their groups" ON groups FOR UPDATE USING (auth.uid() = user_id);
-CREATE POLICY "Users can delete their groups" ON groups FOR DELETE USING (auth.uid() = user_id);
-
--- lists 정책 (INSERT/SELECT/UPDATE/DELETE 분리)
-CREATE POLICY "Users can insert their lists" ON lists FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users can view their lists" ON lists FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Users can update their lists" ON lists FOR UPDATE USING (auth.uid() = user_id);
-CREATE POLICY "Users can delete their lists" ON lists FOR DELETE USING (auth.uid() = user_id);
-
--- items 정책 (INSERT/SELECT/UPDATE/DELETE 분리)
-CREATE POLICY "Users can insert items in their lists" ON items FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users can view items in their lists" ON items FOR SELECT USING (
-    EXISTS (
-        SELECT 1 FROM lists
-        WHERE lists.id = items.list_id
-        AND lists.user_id = auth.uid()
-    )
-);
-CREATE POLICY "Users can update items in their lists" ON items FOR UPDATE USING (
-    EXISTS (
-        SELECT 1 FROM lists
-        WHERE lists.id = items.list_id
-        AND lists.user_id = auth.uid()
-    )
-);
-CREATE POLICY "Users can delete items in their lists" ON items FOR DELETE USING (
-    EXISTS (
-        SELECT 1 FROM lists
-        WHERE lists.id = items.list_id
-        AND lists.user_id = auth.uid()
-    )
-);
-
--- menu_positions 정책
-CREATE POLICY "Users can manage their menu positions" ON menu_positions FOR ALL USING (auth.uid() = user_id);
-
+--
+-- 추가 파일들:
+-- - src/sql/policies/rls_policies.sql: RLS (Row Level Security) 정책 정의
+-- - src/sql/trigger/menu_position_cascade_triggers.sql: 연관 데이터 정리 트리거
+-- - src/sql/functions/menu_position_helpers.sql: Position 관리 유틸리티 함수
+--
 
 
 

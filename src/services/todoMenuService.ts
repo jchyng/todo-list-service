@@ -134,7 +134,11 @@ const updateListsToIndependent = async (userId: string, groupId: number) => {
   return data || [];
 };
 
-const addListsToMenu = async (userId: string, lists: any[]) => {
+interface ListItem {
+  id: number;
+}
+
+const addListsToMenu = async (userId: string, lists: ListItem[]) => {
   for (const list of lists) {
     await supabase.rpc("add_menu_item_at_index", {
       p_user_id: userId,
@@ -203,6 +207,40 @@ export async function updateListColor(
     .eq("id", listId)
     .eq("user_id", userId)
     .select("id, name, color, is_system")
+    .single();
+
+  if (error) return handleServiceError(error);
+  return { success: true, data };
+}
+
+export async function updateListName(
+  userId: string,
+  listId: number,
+  name: string
+): Promise<ServiceResult> {
+  const { data, error } = await supabase
+    .from("lists")
+    .update({ name })
+    .eq("id", listId)
+    .eq("user_id", userId)
+    .select("id, name, color, is_system")
+    .single();
+
+  if (error) return handleServiceError(error);
+  return { success: true, data };
+}
+
+export async function updateGroupName(
+  userId: string,
+  groupId: number,
+  name: string
+): Promise<ServiceResult> {
+  const { data, error } = await supabase
+    .from("groups")
+    .update({ name })
+    .eq("id", groupId)
+    .eq("user_id", userId)
+    .select("id, name")
     .single();
 
   if (error) return handleServiceError(error);

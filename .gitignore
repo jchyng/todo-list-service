@@ -5,6 +5,7 @@
 pnpm*
 .env.*
 dist/
+*.npmrc
 
 ### react ###
 .DS_*

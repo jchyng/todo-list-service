@@ -168,7 +168,8 @@ RETURNS TABLE (
   name TEXT,
   color TEXT,
   "position" VARCHAR(50),
-  parent_id BIGINT
+  parent_id BIGINT,
+  item_count BIGINT
 ) AS $$
 BEGIN
   RETURN QUERY
@@ -180,26 +181,32 @@ BEGIN
       g.name::TEXT,
       NULL::TEXT as color,
       mp.position,
-      NULL::BIGINT as parent_id
+      NULL::BIGINT as parent_id,
+      0::BIGINT as item_count
     FROM groups g
     INNER JOIN menu_positions mp ON (mp.item_type = 'group' AND mp.item_id = g.id)
     WHERE g.user_id = p_user_id AND mp.user_id = p_user_id
 
     UNION ALL
 
-    -- 목록 조회
+    -- 목록 조회 (todo item 개수 포함)
     SELECT
       'list'::TEXT as menu_type,
       l.id,
       l.name::TEXT,
       l.color::TEXT,
       mp.position,
-      l.group_id as parent_id
+      l.group_id as parent_id,
+      COALESCE((
+        SELECT COUNT(*)
+        FROM items i
+        WHERE i.list_id = l.id AND i.user_id = p_user_id
+      ), 0)::BIGINT as item_count
     FROM lists l
     INNER JOIN menu_positions mp ON (mp.item_type = 'list' AND mp.item_id = l.id)
     WHERE l.user_id = p_user_id AND mp.user_id = p_user_id AND l.is_system = false
   )
-  SELECT pm.menu_type, pm.id, pm.name, pm.color, pm.position, pm.parent_id
+  SELECT pm.menu_type, pm.id, pm.name, pm.color, pm.position, pm.parent_id, pm.item_count
   FROM positioned_menus pm
   ORDER BY pm.position;
 END;

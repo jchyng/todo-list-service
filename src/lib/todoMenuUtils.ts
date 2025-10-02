@@ -1,12 +1,38 @@
 import type { UserMenuProps, ListMenuProps } from "@/data/SidebarMenuData";
 import { getRandomColor } from "@/constant/TailwindColor";
 
+// Database entity interfaces
+interface GroupEntity {
+  id: number;
+  name: string;
+  position?: string;
+}
+
+interface ListEntity {
+  id: number;
+  name: string;
+  color: string;
+  position?: string;
+  group_id?: number;
+}
+
+// RPC data interfaces
+interface RpcMenuItem {
+  id: number;
+  name: string;
+  type: 'group' | 'list';
+  color?: string;
+  position: string;
+  parent_id?: number;
+  item_count?: number;
+}
+
 export const generateTempId = (prefix: string): string => {
   return `temp-${prefix}-${Date.now()}`;
 };
 
 export const createOptimisticGroup = (id: string, name: string): UserMenuProps => ({
-  id: id as any,
+  id: id as string | number,
   text: name,
   type: "group",
   children: [],
@@ -19,7 +45,7 @@ export const createOptimisticList = (
   name: string,
   color?: string
 ): UserMenuProps => ({
-  id: id as any,
+  id: id as string | number,
   text: name,
   type: "list",
   color: color || getRandomColor(),
@@ -28,7 +54,7 @@ export const createOptimisticList = (
   isPending: false,
 });
 
-export const transformGroupToUserMenu = (group: any, children: any[] = []): UserMenuProps => ({
+export const transformGroupToUserMenu = (group: GroupEntity, children: ListEntity[] = []): UserMenuProps => ({
   id: group.id,
   text: group.name,
   type: "group",
@@ -36,7 +62,7 @@ export const transformGroupToUserMenu = (group: any, children: any[] = []): User
   children: children.map(list => transformListToListMenu(list)),
 });
 
-export const transformListToUserMenu = (list: any): UserMenuProps => ({
+export const transformListToUserMenu = (list: ListEntity): UserMenuProps => ({
   id: list.id,
   text: list.name,
   type: "list",
@@ -45,7 +71,7 @@ export const transformListToUserMenu = (list: any): UserMenuProps => ({
   position: list.position,
 });
 
-export const transformListToListMenu = (list: any): ListMenuProps => ({
+export const transformListToListMenu = (list: ListEntity): ListMenuProps => ({
   id: list.id,
   text: list.name,
   type: "list",
@@ -54,9 +80,9 @@ export const transformListToListMenu = (list: any): ListMenuProps => ({
 });
 
 export const transformMenuData = (
-  groups: any[],
-  independentLists: any[],
-  groupLists: any[]
+  groups: GroupEntity[],
+  independentLists: ListEntity[],
+  groupLists: ListEntity[]
 ): UserMenuProps[] => {
   const result: UserMenuProps[] = [];
 
@@ -72,7 +98,7 @@ export const transformMenuData = (
   return result;
 };
 
-const createGroupFromRpcData = (item: any): UserMenuProps => ({
+const createGroupFromRpcData = (item: RpcMenuItem): UserMenuProps => ({
   id: item.id,
   text: item.name,
   type: "group",
@@ -80,16 +106,16 @@ const createGroupFromRpcData = (item: any): UserMenuProps => ({
   children: [],
 });
 
-const createListFromRpcData = (item: any): UserMenuProps => ({
+const createListFromRpcData = (item: RpcMenuItem): UserMenuProps => ({
   id: item.id,
   text: item.name,
   type: "list",
-  color: item.color,
-  count: 0,
+  color: item.color || '#gray',
+  count: item.item_count || 0,
   position: item.position,
 });
 
-const addListToGroup = (list: any, groupsMap: Map<number, UserMenuProps>) => {
+const addListToGroup = (list: RpcMenuItem, groupsMap: Map<number, UserMenuProps>) => {
   const parentGroup = groupsMap.get(list.parent_id);
   if (parentGroup?.children) {
     parentGroup.children.push({
@@ -97,12 +123,12 @@ const addListToGroup = (list: any, groupsMap: Map<number, UserMenuProps>) => {
       text: list.name,
       type: "list",
       color: list.color,
-      count: 0,
+      count: list.item_count || 0,
     });
   }
 };
 
-export const transformRpcMenuData = (rpcData: any[]): UserMenuProps[] => {
+export const transformRpcMenuData = (rpcData: RpcMenuItem[]): UserMenuProps[] => {
   const result: UserMenuProps[] = [];
   const groupsMap = new Map<number, UserMenuProps>();
 

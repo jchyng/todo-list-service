@@ -31,14 +31,22 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className="w-64 vh-100 border-r border-border">
+    <aside
+      className="w-64 vh-100 border-r border-border bg-gray-50 dark:bg-gray-900"
+      role="navigation"
+      aria-label="메인 네비게이션"
+    >
       {/* Spread Button */}
-      <button className="ml-1 p-2 rounded-md cursor-pointer">
+      <button
+        className="ml-1 p-2 rounded-md cursor-pointer"
+        aria-label="메뉴 토글"
+        type="button"
+      >
         <Menu size={16} />
       </button>
 
       {/* System Menus */}
-      <nav>
+      <nav aria-label="시스템 메뉴">
         {systemMenus.map((item) => {
           // System 메뉴 활성화 확인
           const isActive = listId === item.virtualId;
@@ -62,7 +70,7 @@ export default function Sidebar() {
       </div>
 
       {/* User Menus */}
-      <nav>
+      <nav aria-label="사용자 정의 메뉴">
         {isLoading ? (
           <div className="px-4 py-8 text-center text-muted-foreground">
             <div className="animate-spin h-6 w-6 border-2 border-current border-t-transparent rounded-full mx-auto mb-2"></div>
@@ -74,6 +82,8 @@ export default function Sidebar() {
             <button
               onClick={() => user?.id && loadUserMenus(user.id)}
               className="mt-2 text-xs underline hover:no-underline"
+              type="button"
+              aria-label="메뉴 다시 로드"
             >
               다시 시도
             </button>

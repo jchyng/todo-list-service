@@ -36,11 +36,15 @@ export function MenuAddSection({
   // 단순한 낙관적 UI: userMenus 하나로만 관리
 
   // 시스템 장애인지 확인하는 함수
-  const isSystemError = (error: any): boolean => {
+  const isSystemError = (error: unknown): boolean => {
+    if (!error || typeof error !== 'object') return false;
+
+    const errorObj = error as { name?: string; status?: number; message?: string };
+
     // 네트워크 오류 또는 500번대 에러
-    return error.name === 'NetworkError' ||
-           (error.status && error.status >= 500) ||
-           error.message?.includes('Network');
+    return errorObj.name === 'NetworkError' ||
+           (errorObj.status && errorObj.status >= 500) ||
+           errorObj.message?.includes('Network') || false;
   };
 
   // 그룹 저장

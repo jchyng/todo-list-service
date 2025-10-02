@@ -55,7 +55,7 @@ export default function ContentHeader({
 
   if (type === "none" || type === "unknown") {
     return (
-      <div className="px-6 py-4 border-b border-gray-200">
+      <div className="px-6 py-4">
         <h1 className="text-2xl font-semibold text-gray-900">할 일</h1>
       </div>
     );
@@ -64,7 +64,7 @@ export default function ContentHeader({
   if (type === "system" && systemMenu) {
     const Icon = systemMenu.icon;
     return (
-      <div className="px-6 py-4 border-b border-gray-200">
+      <div className="px-6 py-4">
         <div className="flex items-center gap-3">
           <Icon className="w-6 h-6 text-blue-600" />
           <h1 className="text-2xl font-semibold text-gray-900">
