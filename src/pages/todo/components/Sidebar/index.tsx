@@ -12,6 +12,7 @@ export default function Sidebar() {
   const { listId } = useParams();
   const {
     userMenus,
+    systemMenuCounts,
     isLoading,
     error,
     loadUserMenus,
@@ -42,12 +43,15 @@ export default function Sidebar() {
           // System 메뉴 활성화 확인
           const isActive = listId === item.virtualId;
 
+          // 동적 카운트 가져오기
+          const count = systemMenuCounts[item.virtualId as keyof typeof systemMenuCounts] ?? 0;
+
           return (
             <SystemMenu
               key={item.id}
               icon={item.icon}
               text={item.text}
-              count={item.count}
+              count={count}
               virtualId={item.virtualId}
               isActive={isActive}
             />

@@ -43,27 +43,9 @@ CREATE POLICY "Users can delete their lists" ON lists FOR DELETE USING (auth.uid
 -- ======================================
 
 CREATE POLICY "Users can insert items in their lists" ON items FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users can view items in their lists" ON items FOR SELECT USING (
-    EXISTS (
-        SELECT 1 FROM lists
-        WHERE lists.id = items.list_id
-        AND lists.user_id = auth.uid()
-    )
-);
-CREATE POLICY "Users can update items in their lists" ON items FOR UPDATE USING (
-    EXISTS (
-        SELECT 1 FROM lists
-        WHERE lists.id = items.list_id
-        AND lists.user_id = auth.uid()
-    )
-);
-CREATE POLICY "Users can delete items in their lists" ON items FOR DELETE USING (
-    EXISTS (
-        SELECT 1 FROM lists
-        WHERE lists.id = items.list_id
-        AND lists.user_id = auth.uid()
-    )
-);
+CREATE POLICY "Users can view items in their lists" ON items FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can update items in their lists" ON items FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete items in their lists" ON items FOR DELETE USING (auth.uid() = user_id);
 
 -- ======================================
 -- menu_positions 정책 (메뉴 순서 관리)

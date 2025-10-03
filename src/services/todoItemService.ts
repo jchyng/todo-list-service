@@ -78,11 +78,11 @@ export async function createTodoItem(
     // Edge Function 사용하는 대신 직접 DB에 삽입
     // position 계산을 위해 generate_position_between 함수 사용
     const { data: positionResult } = await supabase.rpc('generate_position_between', {
-      after_position: null,
-      before_position: null
+      p_before: null,
+      p_after: null
     });
 
-    const newPosition = positionResult || 'a0';
+    const newPosition = positionResult || 'n';
 
     const insertData: any = {
       user_id: _userId,
@@ -175,7 +175,7 @@ export async function updateTodoItem(
     // 기존 아이템 정보 조회 (반복 설정 포함)
     const { data: existingItem, error: fetchError } = await supabase
       .from("items")
-      .select("recurrence_id")
+      .select("recurrence_id, list_id")
       .eq("id", itemId)
       .eq("user_id", _userId)
       .single();
@@ -185,10 +185,11 @@ export async function updateTodoItem(
     // 반복 설정 처리
     if (data.repeat_config !== undefined) {
       if (data.repeat_config === null || data.repeat_config.type === 'none') {
-        // 반복 제거: 기존 recurrence_rule 삭제
+        // 반복 제거: recurrence_id만 NULL로 설정 (CASCADE 방지)
         if (existingItem.recurrence_id) {
-          await deleteRecurrenceRule(existingItem.recurrence_id);
           updateData.recurrence_id = null;
+          // recurrence_rule은 나중에 정리 (다른 items가 참조할 수도 있음)
+          // 백그라운드 작업으로 미사용 recurrence_rule 정리 가능
         }
       } else {
         // 반복 설정 추가/변경
@@ -212,30 +213,30 @@ export async function updateTodoItem(
       delete updateData.repeat_config;
     }
 
-    // 아이템 업데이트
+    // 아이템 업데이트 (JOIN 없이)
     const { data: item, error } = await supabase
       .from("items")
       .update(updateData)
       .eq("id", itemId)
       .eq("user_id", _userId)
-      .select(`
-        *,
-        recurrence_rule!left (*)
-      `)
+      .select()
       .single();
 
     if (error) return handleServiceError(error);
 
-    // 반복 설정을 UI 형태로 변환
+    // 반복 설정이 있으면 별도로 조회
     let repeat_config;
-    if (item.recurrence_rule) {
-      repeat_config = convertRecurrenceRuleToRepeatConfig(item.recurrence_rule);
+    let recurrence_rule;
+    if (item.recurrence_id) {
+      const { repeat_config: rc, recurrence_rule: rr } = await fetchRecurrenceConfig(item.recurrence_id);
+      repeat_config = rc;
+      recurrence_rule = rr;
     }
 
     const parsedItem: TodoItem = {
       ...item,
       repeat_config,
-      recurrence_rule: item.recurrence_rule,
+      recurrence_rule,
     };
 
     return { success: true, data: parsedItem };

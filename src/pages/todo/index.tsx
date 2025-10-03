@@ -29,6 +29,7 @@ import {
   ResizableHandle,
 } from "@/components/ui/resizable";
 import { logger } from "@/lib/logger";
+import { toast } from "@/hooks/useToast";
 
 export default function TodoPage() {
   const { listId } = useParams();
@@ -277,10 +278,11 @@ export default function TodoPage() {
     data: {
       title?: string;
       description?: string;
-      due_date?: string;
+      due_date?: string | null;
       added_to_my_day_date?: string | null;
       is_completed?: boolean;
       is_important?: boolean;
+      repeat_config?: any | null;
     }
   ) => {
     if (!user?.id) return;
@@ -297,9 +299,12 @@ export default function TodoPage() {
       const result = await updateTodoItem(user.id, id, data);
       if (result.success && result.data) {
         setSelectedItem(result.data);
+      } else {
+        toast.error("업데이트에 실패했습니다");
       }
     } catch (error) {
       logger.error("Failed to update item", "TodoPage", { error });
+      toast.error("업데이트 중 오류가 발생했습니다");
     }
   };
 

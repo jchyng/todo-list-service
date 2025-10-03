@@ -73,14 +73,22 @@ export default function TodoDetailPanel({
   };
 
   const handleDueDateChange = (date: Date | undefined) => {
-    const dueDateString = date ? date.toISOString().split("T")[0] : undefined;
-    onUpdate(item.id, { due_date: dueDateString });
+    if (date === undefined) {
+      // 기한 삭제
+      onUpdate(item.id, { due_date: null });
+    } else {
+      const dueDateString = date.toISOString().split("T")[0];
+      onUpdate(item.id, { due_date: dueDateString });
+    }
   };
 
   const handleRepeatChange = (config: RepeatConfig | undefined) => {
-    // undefined인 경우 none 타입으로 변환하여 반복 제거
-    const repeatConfig = config || { type: "none" as const };
-    onUpdate(item.id, { repeat_config: repeatConfig });
+    if (config === undefined) {
+      // 반복 삭제
+      onUpdate(item.id, { repeat_config: null });
+    } else {
+      onUpdate(item.id, { repeat_config: config });
+    }
   };
 
   return (
@@ -157,7 +165,7 @@ export default function TodoDetailPanel({
                 className={cn(
                   "w-5 h-5 flex-shrink-0",
                   isAddedToMyDay()
-                    ? "text-blue-500 fill-blue-500"
+                    ? "text-blue-500"
                     : "text-gray-500 dark:text-gray-400"
                 )}
               />
@@ -169,28 +177,28 @@ export default function TodoDetailPanel({
                     : "text-gray-700 dark:text-gray-300"
                 )}
               >
-                {isAddedToMyDay() ? "나의 하루에서 제거" : "나의 하루에 추가"}
+                {isAddedToMyDay() ? "오늘 할 일에서 제거" : "오늘 할 일에 추가"}
               </span>
             </button>
           </div>
 
           {/* Set Due Date */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-0">
             <DatePicker
               selected={item.due_date ? new Date(item.due_date) : undefined}
               onSelect={handleDueDateChange}
               placeholder="기한 설정"
-              className="w-full px-3 py-3 text-left border-none h-auto shadow-none text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-750 hover:text-blue-500 rounded-lg transition-colors"
+              className="w-full py-3 text-left border-none h-auto shadow-none text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-750 hover:text-blue-500 rounded-lg transition-colors"
             />
           </div>
 
           {/* Repeat */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-0">
             <RepeatPicker
               value={item.repeat_config}
               onChange={handleRepeatChange}
               placeholder="반복 설정"
-              className="w-full px-3 py-3 text-left border-none h-auto shadow-none text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-750 hover:text-blue-500 rounded-lg transition-colors"
+              className="w-full py-3 text-left border-none h-auto shadow-none text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-750 hover:text-blue-500 rounded-lg transition-colors"
             />
           </div>
         </div>

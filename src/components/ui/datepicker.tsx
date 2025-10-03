@@ -49,8 +49,10 @@ export function DatePicker({
   };
 
   const handleClear = (e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
     onSelect?.(undefined);
+    setOpen(false);
   };
 
   const calendarContent = (
@@ -96,32 +98,37 @@ export function DatePicker({
   );
 
   return (
-    <Popover
-      open={open}
-      onOpenChange={setOpen}
-      content={calendarContent}
-      align="start"
-    >
-      <button
-        className={cn(
-          "w-full flex items-center gap-3 px-0 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md transition-colors text-sm",
-          !selected && "text-gray-500",
-          disabled && "opacity-50 pointer-events-none",
-          className
-        )}
-        disabled={disabled}
+    <div className="w-full flex items-center gap-2">
+      <Popover
+        open={open}
+        onOpenChange={setOpen}
+        content={calendarContent}
+        align="start"
       >
-        <CalendarIcon className="w-4 h-4 text-blue-500 flex-shrink-0" />
-        <span className="flex-1">
-          {selected ? formatDate(selected) : placeholder}
-        </span>
-        {selected && clearable && (
-          <X
-            className="h-4 w-4 opacity-50 hover:opacity-100"
-            onClick={handleClear}
-          />
-        )}
-      </button>
-    </Popover>
+        <button
+          className={cn(
+            "flex items-center gap-3 flex-1 px-0 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md transition-colors text-sm",
+            !selected && "text-gray-500",
+            disabled && "opacity-50 pointer-events-none",
+            className
+          )}
+          disabled={disabled}
+        >
+          <CalendarIcon className={cn("w-4 h-4 flex-shrink-0", selected ? "text-blue-500" : "text-gray-500 dark:text-gray-400")} />
+          <span className="flex-1">
+            {selected ? formatDate(selected) : placeholder}
+          </span>
+        </button>
+      </Popover>
+      {selected && clearable && (
+        <button
+          onClick={handleClear}
+          className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors"
+          type="button"
+        >
+          <X className="h-4 w-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200" />
+        </button>
+      )}
+    </div>
   );
 }

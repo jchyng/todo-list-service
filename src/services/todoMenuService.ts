@@ -19,17 +19,23 @@ export async function createGroup(
 
   if (groupError) return handleServiceError(groupError);
 
-  const { error: positionError } = await supabase.rpc(
+  const { data: positionData, error: positionError } = await supabase.rpc(
     "add_menu_item_at_index",
     {
       p_user_id: userId,
       p_item_type: "group",
       p_item_id: group.id,
-      p_index: index || null,
+      p_index: index ?? null,
     }
   );
 
-  if (positionError) return handleServiceError(positionError);
+  if (positionError) {
+    console.error("RPC add_menu_item_at_index error:", {
+      error: positionError,
+      params: { p_user_id: userId, p_item_type: "group", p_item_id: group.id, p_index: index ?? null }
+    });
+    return handleServiceError(positionError);
+  }
 
   return { success: true, data: group };
 }
@@ -55,17 +61,23 @@ export async function createList(
 
   if (listError) return handleServiceError(listError);
 
-  const { error: positionError } = await supabase.rpc(
+  const { data: positionData, error: positionError } = await supabase.rpc(
     "add_menu_item_at_index",
     {
       p_user_id: userId,
       p_item_type: "list",
       p_item_id: list.id,
-      p_index: index || null,
+      p_index: index ?? null,
     }
   );
 
-  if (positionError) return handleServiceError(positionError);
+  if (positionError) {
+    console.error("RPC add_menu_item_at_index error:", {
+      error: positionError,
+      params: { p_user_id: userId, p_item_type: "list", p_item_id: list.id, p_index: index ?? null }
+    });
+    return handleServiceError(positionError);
+  }
 
   return { success: true, data: list };
 }
@@ -242,6 +254,15 @@ export async function updateGroupName(
     .eq("user_id", userId)
     .select("id, name")
     .single();
+
+  if (error) return handleServiceError(error);
+  return { success: true, data };
+}
+
+export async function getSystemMenuCounts(userId: string): Promise<ServiceResult> {
+  const { data, error } = await supabase.rpc("get_system_menu_counts", {
+    p_user_id: userId,
+  });
 
   if (error) return handleServiceError(error);
   return { success: true, data };

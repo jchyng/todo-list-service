@@ -65,11 +65,11 @@ export interface UpdateTodoItemData {
   description?: string;
   is_completed?: boolean;
   position?: string;
-  due_date?: string;
+  due_date?: string | null;
   added_to_my_day_date?: string | null;
   is_important?: boolean;
-  repeat_config?: RepeatConfig;
-  recurrence_id?: number; // recurrence_rule 테이블 참조
+  repeat_config?: RepeatConfig | null;
+  recurrence_id?: number | null; // recurrence_rule 테이블 참조
 }
 
 export interface TodoItemWithOptimistic extends TodoItem {

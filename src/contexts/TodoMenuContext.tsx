@@ -3,6 +3,7 @@ import type { UserMenuProps } from "@/data/SidebarMenuData";
 import type { TailwindColor } from "@/constant/TailwindColor";
 import {
   getUserMenus,
+  getSystemMenuCounts,
   updateListColor,
   updateListName,
   updateGroupName,
@@ -13,11 +14,19 @@ import { transformRpcMenuData } from "@/lib/todoMenuUtils";
 import { toast } from "@/hooks/useToast";
 import { contextLogger } from "@/lib/logger";
 
+interface SystemMenuCounts {
+  today: number;
+  important: number;
+  tasks: number;
+}
+
 interface TodoMenuContextType {
   userMenus: UserMenuProps[];
+  systemMenuCounts: SystemMenuCounts;
   isLoading: boolean;
   error: string | null;
   loadUserMenus: (userId: string) => Promise<void>;
+  loadSystemMenuCounts: (userId: string) => Promise<void>;
   updateMenuColor: (listId: number, color: TailwindColor, userId: string) => Promise<void>;
   updateMenuName: (menuId: number, name: string, userId: string, menuType: "list" | "group") => Promise<void>;
   deleteMenu: (listId: number, userId: string) => Promise<void>;
@@ -34,6 +43,11 @@ interface TodoMenuProviderProps {
 
 export function TodoMenuProvider({ children, userId }: TodoMenuProviderProps) {
   const [userMenus, setUserMenus] = useState<UserMenuProps[]>([]);
+  const [systemMenuCounts, setSystemMenuCounts] = useState<SystemMenuCounts>({
+    today: 0,
+    important: 0,
+    tasks: 0,
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -200,18 +214,38 @@ export function TodoMenuProvider({ children, userId }: TodoMenuProviderProps) {
     }
   }, [userMenus]);
 
+  // 시스템 메뉴 카운트 로드
+  const loadSystemMenuCounts = useCallback(async (userId: string) => {
+    try {
+      const result = await getSystemMenuCounts(userId);
+
+      if (!result.success) throw new Error(result.error);
+
+      if (result.data) {
+        setSystemMenuCounts(result.data);
+        contextLogger.success("시스템 메뉴 카운트 로드 완료", result.data);
+      }
+    } catch (err) {
+      contextLogger.error("시스템 메뉴 카운트 로드 실패", { error: err });
+      // 에러 발생 시에도 기본값 유지
+    }
+  }, []);
+
   // userId가 변경되면 자동으로 메뉴 로드
   useEffect(() => {
     if (userId) {
       loadUserMenus(userId);
+      loadSystemMenuCounts(userId);
     }
-  }, [userId, loadUserMenus]);
+  }, [userId, loadUserMenus, loadSystemMenuCounts]);
 
   const value: TodoMenuContextType = {
     userMenus,
+    systemMenuCounts,
     isLoading,
     error,
     loadUserMenus,
+    loadSystemMenuCounts,
     updateMenuColor,
     updateMenuName,
     deleteMenu,
