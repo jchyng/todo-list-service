@@ -9,6 +9,49 @@ import {
   convertRecurrenceRuleToRepeatConfig,
   addRecurrenceException
 } from "./recurrenceRuleService";
+import { todoLogger } from "@/lib/logger";
+
+/**
+ * 반복 설정 조회 및 변환 유틸 함수
+ */
+async function fetchRecurrenceConfig(recurrenceId: number) {
+  try {
+    const { data: ruleData, error } = await supabase
+      .from("recurrence_rule")
+      .select("*")
+      .eq("id", recurrenceId)
+      .single();
+
+    if (error || !ruleData) {
+      todoLogger.warn('Failed to fetch recurrence rule', { error, recurrenceId });
+      return { repeat_config: undefined, recurrence_rule: undefined };
+    }
+
+    return {
+      repeat_config: convertRecurrenceRuleToRepeatConfig(ruleData),
+      recurrence_rule: ruleData
+    };
+  } catch (error) {
+    todoLogger.warn('Error fetching recurrence rule', { error, recurrenceId });
+    return { repeat_config: undefined, recurrence_rule: undefined };
+  }
+}
+
+/**
+ * TodoItem 배열에 반복 설정 추가
+ */
+async function enrichItemsWithRecurrence(items: any[]): Promise<TodoItem[]> {
+  return Promise.all(
+    items.map(async (item) => {
+      if (!item.recurrence_id) {
+        return { ...item, repeat_config: undefined, recurrence_rule: undefined };
+      }
+
+      const { repeat_config, recurrence_rule } = await fetchRecurrenceConfig(item.recurrence_id);
+      return { ...item, repeat_config, recurrence_rule };
+    })
+  );
+}
 
 export async function createTodoItem(
   _userId: string,
@@ -78,7 +121,7 @@ export async function createTodoItem(
 
     return { success: true, data: result };
   } catch (error) {
-    console.error('Create todo item error:', error);
+    todoLogger.error('Create todo item error', { error });
     return { success: false, error: "할 일 생성 중 오류가 발생했습니다" };
   }
 }
@@ -88,83 +131,22 @@ export async function getTodoItems(
   listId: number
 ): Promise<ServiceResult<TodoItem[]>> {
   try {
-    // 먼저 기본 items 조회 시도
-    let data, error;
-
-    try {
-      // recurrence_rule과 JOIN 시도
-      const joinResult = await supabase
-        .from("items")
-        .select(`
-          *,
-          recurrence_rule (*)
-        `)
-        .eq("user_id", _userId)
-        .eq("list_id", listId)
-        .order("position");
-
-      data = joinResult.data;
-      error = joinResult.error;
-    } catch (joinError) {
-      console.warn('JOIN query failed, falling back to basic query:', joinError);
-
-      // JOIN 실패 시 기본 쿼리로 fallback
-      const basicResult = await supabase
-        .from("items")
-        .select("*")
-        .eq("user_id", _userId)
-        .eq("list_id", listId)
-        .order("position");
-
-      data = basicResult.data;
-      error = basicResult.error;
-    }
+    const { data, error } = await supabase
+      .from("items")
+      .select("*")
+      .eq("user_id", _userId)
+      .eq("list_id", listId)
+      .order("position");
 
     if (error) {
-      console.error('getTodoItems query failed:', {
-        error,
-        userId: _userId,
-        listId,
-        query: 'items query (with fallback)'
-      });
+      todoLogger.error('getTodoItems query failed', { error, userId: _userId, listId });
       return handleServiceError(error);
     }
 
-    // 반복 설정을 UI 형태로 변환
-    const parsedData = await Promise.all(
-      (data || []).map(async (item) => {
-        let repeat_config;
-        let recurrence_rule;
-
-        // recurrence_id가 있으면 별도로 조회
-        if (item.recurrence_id) {
-          try {
-            const ruleResult = await supabase
-              .from("recurrence_rule")
-              .select("*")
-              .eq("id", item.recurrence_id)
-              .single();
-
-            if (ruleResult.data) {
-              recurrence_rule = ruleResult.data;
-              repeat_config = convertRecurrenceRuleToRepeatConfig(ruleResult.data);
-            }
-          } catch (ruleError) {
-            console.warn('Failed to fetch recurrence rule:', ruleError);
-          }
-        }
-
-        return {
-          ...item,
-          repeat_config,
-          recurrence_rule,
-        };
-      })
-    );
-
-    return { success: true, data: parsedData };
+    const enrichedData = await enrichItemsWithRecurrence(data || []);
+    return { success: true, data: enrichedData };
   } catch (error) {
-    console.error('Get todo items error:', error);
+    todoLogger.error('Get todo items error', { error });
     return { success: false, error: "할 일 목록 조회 중 오류가 발생했습니다" };
   }
 }
@@ -258,7 +240,7 @@ export async function updateTodoItem(
 
     return { success: true, data: parsedItem };
   } catch (error) {
-    console.error('Update todo item error:', error);
+    todoLogger.error('Update todo item error', { error });
     return { success: false, error: "할 일 업데이트 중 오류가 발생했습니다" };
   }
 }
@@ -287,7 +269,7 @@ export async function deleteTodoItem(
       );
 
       if (!exceptionResult.success) {
-        console.error('Failed to add recurrence exception:', exceptionResult.error);
+        todoLogger.error('Failed to add recurrence exception', { error: exceptionResult.error });
         // 예외 기록 실패해도 삭제는 계속 진행
       }
     }
@@ -302,7 +284,7 @@ export async function deleteTodoItem(
     if (deleteError) return handleServiceError(deleteError);
     return { success: true };
   } catch (error) {
-    console.error('Delete todo item error:', error);
+    todoLogger.error('Delete todo item error', { error });
     return { success: false, error: "할 일 삭제 중 오류가 발생했습니다" };
   }
 }
@@ -332,20 +314,20 @@ export async function toggleTodoCompletion(
         );
 
         if (rpcError) {
-          console.error('Failed to create next recurring task:', rpcError);
+          todoLogger.error('Failed to create next recurring task', { error: rpcError });
           // 다음 작업 생성 실패해도 현재 완료는 유지
         } else if (nextTaskResult?.success) {
-          console.log('Successfully created next recurring task:', nextTaskResult.data);
+          todoLogger.success('Successfully created next recurring task', { data: nextTaskResult.data });
         }
       } catch (error) {
-        console.error('Error creating next recurring task:', error);
+        todoLogger.error('Error creating next recurring task', { error });
         // 에러가 발생해도 현재 완료 상태는 유지
       }
     }
 
     return updateResult;
   } catch (error) {
-    console.error('Toggle todo completion error:', error);
+    todoLogger.error('Toggle todo completion error', { error });
     return { success: false, error: "완료 상태 변경 중 오류가 발생했습니다" };
   }
 }
@@ -385,7 +367,7 @@ export async function reorderTodoItem(
 
     return { success: true, data: result.data as TodoItem };
   } catch (error) {
-    console.error('Reorder todo item error:', error);
+    todoLogger.error('Reorder todo item error', { error });
     return { success: false, error: "네트워크 오류가 발생했습니다" };
   }
 }
@@ -427,7 +409,7 @@ export async function moveTodoItemBetween(
 
     return { success: true, data: result.data as TodoItem };
   } catch (error) {
-    console.error('Move todo item between error:', error);
+    todoLogger.error('Move todo item between error', { error });
     return { success: false, error: "네트워크 오류가 발생했습니다" };
   }
 }
@@ -454,148 +436,4 @@ export async function duplicateTodoItem(
   };
 
   return createTodoItem(_userId, duplicateData);
-}
-
-// System Menu용 함수들
-
-/**
- * 오늘 할 일 조회 (added_to_my_day_date가 오늘인 작업)
- */
-export async function getTodayTodoItems(
-  _userId: string
-): Promise<ServiceResult<TodoItem[]>> {
-  try {
-    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD 형식
-
-    const { data, error } = await supabase
-      .from("items")
-      .select("*")
-      .eq("user_id", _userId)
-      .eq("added_to_my_day_date", today)
-      .order("position");
-
-    if (error) {
-      console.error('getTodayTodoItems query failed:', error);
-      return handleServiceError(error);
-    }
-
-    // 반복 설정을 UI 형태로 변환
-    const parsedData = await Promise.all(
-      (data || []).map(async (item) => {
-        let repeat_config;
-        let recurrence_rule;
-
-        if (item.recurrence_id) {
-          try {
-            const ruleResult = await supabase
-              .from("recurrence_rule")
-              .select("*")
-              .eq("id", item.recurrence_id)
-              .single();
-
-            if (ruleResult.data) {
-              recurrence_rule = ruleResult.data;
-              repeat_config = convertRecurrenceRuleToRepeatConfig(ruleResult.data);
-            }
-          } catch (ruleError) {
-            console.warn('Failed to fetch recurrence rule:', ruleError);
-          }
-        }
-
-        return {
-          ...item,
-          repeat_config,
-          recurrence_rule,
-        };
-      })
-    );
-
-    return { success: true, data: parsedData };
-  } catch (error) {
-    console.error('Get today todo items error:', error);
-    return { success: false, error: "오늘 할 일 조회 중 오류가 발생했습니다" };
-  }
-}
-
-/**
- * 중요 작업 조회 (is_important가 true인 작업)
- */
-export async function getImportantTodoItems(
-  _userId: string
-): Promise<ServiceResult<TodoItem[]>> {
-  try {
-    const { data, error } = await supabase
-      .from("items")
-      .select("*")
-      .eq("user_id", _userId)
-      .eq("is_important", true)
-      .order("position");
-
-    if (error) {
-      console.error('getImportantTodoItems query failed:', error);
-      return handleServiceError(error);
-    }
-
-    // 반복 설정을 UI 형태로 변환
-    const parsedData = await Promise.all(
-      (data || []).map(async (item) => {
-        let repeat_config;
-        let recurrence_rule;
-
-        if (item.recurrence_id) {
-          try {
-            const ruleResult = await supabase
-              .from("recurrence_rule")
-              .select("*")
-              .eq("id", item.recurrence_id)
-              .single();
-
-            if (ruleResult.data) {
-              recurrence_rule = ruleResult.data;
-              repeat_config = convertRecurrenceRuleToRepeatConfig(ruleResult.data);
-            }
-          } catch (ruleError) {
-            console.warn('Failed to fetch recurrence rule:', ruleError);
-          }
-        }
-
-        return {
-          ...item,
-          repeat_config,
-          recurrence_rule,
-        };
-      })
-    );
-
-    return { success: true, data: parsedData };
-  } catch (error) {
-    console.error('Get important todo items error:', error);
-    return { success: false, error: "중요 작업 조회 중 오류가 발생했습니다" };
-  }
-}
-
-/**
- * 시스템 리스트 조회 (is_system이 true인 list)
- */
-export async function getSystemList(
-  _userId: string
-): Promise<ServiceResult<{ id: number; name: string; color: string; is_system: boolean }>> {
-  try {
-    const { data, error } = await supabase
-      .from("lists")
-      .select("id, name, color, is_system")
-      .eq("user_id", _userId)
-      .eq("is_system", true)
-      .single();
-
-    if (error) {
-      console.error('getSystemList query failed:', error);
-      return handleServiceError(error);
-    }
-
-    return { success: true, data };
-  } catch (error) {
-    console.error('Get system list error:', error);
-    return { success: false, error: "시스템 리스트 조회 중 오류가 발생했습니다" };
-  }
 }

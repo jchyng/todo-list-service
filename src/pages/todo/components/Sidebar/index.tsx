@@ -32,7 +32,7 @@ export default function Sidebar() {
 
   return (
     <aside
-      className="pt-3 w-64 vh-100 border-r border-border bg-gray-50 dark:bg-gray-900"
+      className="pt-3 h-full border-r border-border bg-white dark:bg-gray-900 overflow-y-auto"
       role="navigation"
       aria-label="메인 네비게이션"
     >

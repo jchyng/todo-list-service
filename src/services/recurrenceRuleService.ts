@@ -2,6 +2,7 @@ import { supabase } from "@/lib/supabase";
 import type { ServiceResult } from "@/utils/serviceUtils";
 import { handleServiceError } from "@/utils/serviceUtils";
 import type { RecurrenceRule, RepeatConfig, RecurrenceException } from "@/types/todoItem";
+import { todoLogger } from "@/lib/logger";
 
 // RepeatConfig를 RecurrenceRule로 변환
 export function convertRepeatConfigToRecurrenceRule(config: RepeatConfig): Omit<RecurrenceRule, 'id'> {
@@ -117,7 +118,7 @@ export async function createRecurrenceRule(
     if (error) return handleServiceError(error);
     return { success: true, data };
   } catch (error) {
-    console.error('Create recurrence rule error:', error);
+    todoLogger.error('Create recurrence rule error', { error });
     return { success: false, error: "반복 규칙 생성 중 오류가 발생했습니다" };
   }
 }
@@ -140,7 +141,7 @@ export async function updateRecurrenceRule(
     if (error) return handleServiceError(error);
     return { success: true, data };
   } catch (error) {
-    console.error('Update recurrence rule error:', error);
+    todoLogger.error('Update recurrence rule error', { error });
     return { success: false, error: "반복 규칙 업데이트 중 오류가 발생했습니다" };
   }
 }
@@ -156,7 +157,7 @@ export async function deleteRecurrenceRule(id: number): Promise<ServiceResult> {
     if (error) return handleServiceError(error);
     return { success: true };
   } catch (error) {
-    console.error('Delete recurrence rule error:', error);
+    todoLogger.error('Delete recurrence rule error', { error });
     return { success: false, error: "반복 규칙 삭제 중 오류가 발생했습니다" };
   }
 }
@@ -173,7 +174,7 @@ export async function getRecurrenceRule(id: number): Promise<ServiceResult<Recur
     if (error) return handleServiceError(error);
     return { success: true, data };
   } catch (error) {
-    console.error('Get recurrence rule error:', error);
+    todoLogger.error('Get recurrence rule error', { error });
     return { success: false, error: "반복 규칙 조회 중 오류가 발생했습니다" };
   }
 }
@@ -202,7 +203,7 @@ export async function addRecurrenceException(
     if (error) return handleServiceError(error);
     return { success: true, data };
   } catch (error) {
-    console.error('Add recurrence exception error:', error);
+    todoLogger.error('Add recurrence exception error', { error });
     return { success: false, error: "반복 예외 추가 중 오류가 발생했습니다" };
   }
 }
@@ -221,7 +222,7 @@ export async function getRecurrenceExceptions(
     if (error) return handleServiceError(error);
     return { success: true, data: data || [] };
   } catch (error) {
-    console.error('Get recurrence exceptions error:', error);
+    todoLogger.error('Get recurrence exceptions error', { error });
     return { success: false, error: "반복 예외 조회 중 오류가 발생했습니다" };
   }
 }
@@ -241,7 +242,7 @@ export async function removeRecurrenceException(
     if (error) return handleServiceError(error);
     return { success: true };
   } catch (error) {
-    console.error('Remove recurrence exception error:', error);
+    todoLogger.error('Remove recurrence exception error', { error });
     return { success: false, error: "반복 예외 삭제 중 오류가 발생했습니다" };
   }
 }
@@ -262,7 +263,7 @@ export async function isDateException(
     if (error) return handleServiceError(error);
     return { success: true, data: !!data };
   } catch (error) {
-    console.error('Check date exception error:', error);
+    todoLogger.error('Check date exception error', { error });
     return { success: false, error: "예외 날짜 확인 중 오류가 발생했습니다" };
   }
 }

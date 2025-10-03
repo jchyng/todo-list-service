@@ -237,16 +237,16 @@ export function RepeatPicker({
       content={repeatContent}
       align="start"
     >
-      <Button
-        variant="ghost"
+      <button
         className={cn(
-          "w-full justify-start text-left font-normal",
-          !value || value.type === "none" ? "text-gray-500" : "",
+          "w-full flex items-center gap-3 px-0 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md transition-colors text-sm",
+          !value || value.type === "none" ? "text-gray-500" : "text-gray-700 dark:text-gray-300",
+          disabled && "opacity-50 pointer-events-none",
           className
         )}
         disabled={disabled}
       >
-        <Repeat className="w-4 h-4 text-blue-500 mr-2 flex-shrink-0" />
+        <Repeat className="w-4 h-4 text-blue-500 flex-shrink-0" />
         <span className="flex-1">
           {value && value.type !== "none"
             ? formatRepeatConfig(value)
@@ -258,7 +258,7 @@ export function RepeatPicker({
             onClick={handleClear}
           />
         )}
-      </Button>
+      </button>
     </Popover>
   );
 }

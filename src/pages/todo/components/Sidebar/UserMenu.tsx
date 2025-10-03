@@ -7,6 +7,7 @@ import ListMenu from "./ListMenu";
 import GroupMenu from "./GroupMenu";
 import SimpleDropdown from "@/components/ui/SimpleDropdown";
 import type { UserMenuProps } from "@/data/SidebarMenuData";
+import { menuLogger } from "@/lib/logger";
 
 interface ComponentProps {
   menu: UserMenuProps;
@@ -59,7 +60,7 @@ export default function UserMenu({
       await updateMenuName(menu.id as number, editingValue.trim(), user.id, menu.type);
       setIsEditing(false);
     } catch (error) {
-      console.error("이름 변경 실패:", error);
+      menuLogger.error("이름 변경 실패", { error });
     }
   };
 

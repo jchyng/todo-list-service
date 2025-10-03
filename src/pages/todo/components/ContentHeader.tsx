@@ -4,6 +4,7 @@ import { colorClasses, type TailwindColor } from "@/constant/TailwindColor";
 import { useTodoMenuContext } from "@/contexts/TodoMenuContext";
 import { useAuth } from "@/hooks/useAuth";
 import ColorPicker from "./ColorPicker";
+import { logger } from "@/lib/logger";
 
 interface ListData {
   id: number;
@@ -42,7 +43,7 @@ export default function ContentHeader({
         await updateMenuColor(listData.id, color, user.id);
       } catch (error) {
         // 실패 시 원래 색상으로 롤백 (Context에서 처리됨)
-        console.error("색상 업데이트 실패:", error);
+        logger.error("색상 업데이트 실패", "ContentHeader", { error });
       }
     }
   };

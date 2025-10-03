@@ -102,16 +102,16 @@ export function DatePicker({
       content={calendarContent}
       align="start"
     >
-      <Button
-        variant="ghost"
+      <button
         className={cn(
-          "w-full justify-start text-left font-normal",
+          "w-full flex items-center gap-3 px-0 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md transition-colors text-sm",
           !selected && "text-gray-500",
+          disabled && "opacity-50 pointer-events-none",
           className
         )}
         disabled={disabled}
       >
-        <CalendarIcon className="w-4 h-4 text-blue-500 mr-2 flex-shrink-0" />
+        <CalendarIcon className="w-4 h-4 text-blue-500 flex-shrink-0" />
         <span className="flex-1">
           {selected ? formatDate(selected) : placeholder}
         </span>
@@ -121,7 +121,7 @@ export function DatePicker({
             onClick={handleClear}
           />
         )}
-      </Button>
+      </button>
     </Popover>
   );
 }

@@ -4,11 +4,11 @@ import TodoItemComponent from "./TodoItem";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/useToast";
 import { cn } from "@/lib/utils";
+import { updateTodoItem } from "@/services/todoItemService";
 import {
   getTodayTodoItems,
   getImportantTodoItems,
-  updateTodoItem,
-} from "@/services/todoItemService";
+} from "@/services/systemTodoService";
 import type { TodoItem } from "@/types/todoItem";
 
 interface SystemTodoListProps {

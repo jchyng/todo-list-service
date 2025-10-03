@@ -105,3 +105,21 @@ export const contextLogger = {
   success: (message: string, data?: Record<string, unknown>) => logger.success(message, 'Context', data),
   start: (message: string, data?: Record<string, unknown>) => logger.start(message, 'Context', data),
 };
+
+export const todoLogger = {
+  debug: (message: string, data?: Record<string, unknown>) => logger.debug(message, 'TodoService', data),
+  info: (message: string, data?: Record<string, unknown>) => logger.info(message, 'TodoService', data),
+  warn: (message: string, data?: Record<string, unknown>) => logger.warn(message, 'TodoService', data),
+  error: (message: string, data?: Record<string, unknown>) => logger.error(message, 'TodoService', data),
+  success: (message: string, data?: Record<string, unknown>) => logger.success(message, 'TodoService', data),
+  start: (message: string, data?: Record<string, unknown>) => logger.start(message, 'TodoService', data),
+};
+
+export const menuLogger = {
+  debug: (message: string, data?: Record<string, unknown>) => logger.debug(message, 'MenuService', data),
+  info: (message: string, data?: Record<string, unknown>) => logger.info(message, 'MenuService', data),
+  warn: (message: string, data?: Record<string, unknown>) => logger.warn(message, 'MenuService', data),
+  error: (message: string, data?: Record<string, unknown>) => logger.error(message, 'MenuService', data),
+  success: (message: string, data?: Record<string, unknown>) => logger.success(message, 'MenuService', data),
+  start: (message: string, data?: Record<string, unknown>) => logger.start(message, 'MenuService', data),
+};

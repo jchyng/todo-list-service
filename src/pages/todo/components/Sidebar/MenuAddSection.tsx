@@ -12,6 +12,7 @@ import {
 } from "@/lib/todoMenuUtils";
 import { getRandomColor } from "@/constant/TailwindColor";
 import { toast } from "@/hooks/useToast";
+import { menuLogger } from "@/lib/logger";
 
 import type { UserMenuProps } from "@/data/SidebarMenuData";
 
@@ -83,7 +84,7 @@ export function MenuAddSection({
       if (isSystemError(error)) {
         toast.error(ERROR_MESSAGES.GROUP_CREATE);
       }
-      console.error('Group creation failed:', error);
+      menuLogger.error('Group creation failed', { error });
     }
   }, [newGroupName, user, setUserMenus]);
 
@@ -131,7 +132,7 @@ export function MenuAddSection({
       if (isSystemError(error)) {
         toast.error(ERROR_MESSAGES.LIST_CREATE);
       }
-      console.error('List creation failed:', error);
+      menuLogger.error('List creation failed', { error });
     }
   }, [newListName, user, setUserMenus]);
 
