@@ -84,7 +84,7 @@ export default function TodoDetailPanel({
   };
 
   return (
-    <div className="h-full bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-700 flex flex-col animate-in slide-in-from-right duration-300 ease-out">
+    <div className="h-full bg-gray-50 dark:bg-gray-900 border-l border-gray-200 dark:border-gray-700 flex flex-col animate-in slide-in-from-right duration-300 ease-out">
       {/* Header */}
       <div className="flex items-center justify-end p-4">
         <Button
@@ -100,104 +100,106 @@ export default function TodoDetailPanel({
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-4 space-y-4">
         {/* Title with Completion Circle and Star */}
-        <div className="flex items-center gap-3 py-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleToggleComplete}
-            className={cn(
-              "w-5 h-5 rounded-full border-2 transition-all duration-200 flex-shrink-0 p-0",
-              item.is_completed
-                ? "bg-blue-500 border-blue-500 text-white hover:bg-blue-600"
-                : "border-gray-300 hover:border-blue-400 dark:border-gray-600 dark:hover:border-blue-500"
-            )}
-          >
-            {item.is_completed && <Check className="w-3 h-3" />}
-          </Button>
-
-          <div className="flex-1 min-w-0">
-            <EditableTitle
-              value={item.title}
-              onSave={handleSaveTitle}
-              isCompleted={item.is_completed}
-            />
-          </div>
-
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleToggleImportant}
-            className="h-5 w-5 flex-shrink-0 p-0"
-          >
-            <Star
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-3">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleToggleComplete}
               className={cn(
-                "h-4 w-4 transition-colors",
-                item.is_important
-                  ? "fill-yellow-400 text-yellow-400"
-                  : "text-gray-400 hover:text-yellow-400"
+                "w-5 h-5 rounded-full border-2 transition-all duration-200 flex-shrink-0 p-0",
+                item.is_completed
+                  ? "bg-blue-500 border-blue-500 text-white hover:bg-blue-600"
+                  : "border-gray-300 hover:border-blue-400 dark:border-gray-600 dark:hover:border-blue-500"
               )}
-            />
-          </Button>
+            >
+              {item.is_completed && <Check className="w-3 h-3" />}
+            </Button>
+
+            <div className="flex-1 min-w-0">
+              <EditableTitle
+                value={item.title}
+                onSave={handleSaveTitle}
+                isCompleted={item.is_completed}
+              />
+            </div>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleToggleImportant}
+              className="h-5 w-5 flex-shrink-0 p-0"
+            >
+              <Star
+                className={cn(
+                  "h-4 w-4 transition-colors",
+                  item.is_important
+                    ? "fill-yellow-400 text-yellow-400"
+                    : "text-gray-400 hover:text-yellow-400"
+                )}
+              />
+            </Button>
+          </div>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-2">
           {/* Add to My Day */}
-          <button
-            onClick={handleToggleMyDay}
-            className={cn(
-              "w-full flex items-center gap-3 px-0 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md transition-colors group",
-              isAddedToMyDay() && "bg-blue-50 dark:bg-blue-900/20"
-            )}
-          >
-            <Sun
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+            <button
+              onClick={handleToggleMyDay}
               className={cn(
-                "w-4 h-4 flex-shrink-0",
-                isAddedToMyDay()
-                  ? "text-blue-500 fill-blue-500"
-                  : "text-blue-500"
-              )}
-            />
-            <span
-              className={cn(
-                "text-sm group-hover:text-blue-500",
-                isAddedToMyDay()
-                  ? "text-blue-500 font-medium"
-                  : "text-gray-700 dark:text-gray-300"
+                "w-full flex items-center gap-3 px-3 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-750 rounded-lg transition-colors group",
+                isAddedToMyDay() && "bg-blue-50 dark:bg-blue-900/20"
               )}
             >
-              {isAddedToMyDay() ? "나의 하루에서 제거" : "나의 하루에 추가"}
-            </span>
-          </button>
+              <Sun
+                className={cn(
+                  "w-5 h-5 flex-shrink-0",
+                  isAddedToMyDay()
+                    ? "text-blue-500 fill-blue-500"
+                    : "text-gray-500 dark:text-gray-400"
+                )}
+              />
+              <span
+                className={cn(
+                  "text-sm group-hover:text-blue-500",
+                  isAddedToMyDay()
+                    ? "text-blue-500 font-medium"
+                    : "text-gray-700 dark:text-gray-300"
+                )}
+              >
+                {isAddedToMyDay() ? "나의 하루에서 제거" : "나의 하루에 추가"}
+              </span>
+            </button>
+          </div>
 
           {/* Set Due Date */}
-          <div className="w-full">
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
             <DatePicker
               selected={item.due_date ? new Date(item.due_date) : undefined}
               onSelect={handleDueDateChange}
               placeholder="기한 설정"
-              className="w-full px-0 py-2 text-left border-none h-auto shadow-none text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-blue-500 rounded-md transition-colors"
+              className="w-full px-3 py-3 text-left border-none h-auto shadow-none text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-750 hover:text-blue-500 rounded-lg transition-colors"
             />
           </div>
 
           {/* Repeat */}
-          <div className="w-full">
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
             <RepeatPicker
               value={item.repeat_config}
               onChange={handleRepeatChange}
               placeholder="반복 설정"
-              className="w-full px-0 py-2 text-left border-none h-auto shadow-none text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-blue-500 rounded-md transition-colors"
+              className="w-full px-3 py-3 text-left border-none h-auto shadow-none text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-750 hover:text-blue-500 rounded-lg transition-colors"
             />
           </div>
         </div>
 
         {/* Note/Description Section */}
-        <div className="space-y-2 flex-1">
-          <EditableDescription
-            value={item.description || ""}
-            onSave={handleSaveDescription}
-          />
-        </div>
+        <EditableDescription
+          value={item.description || ""}
+          onSave={handleSaveDescription}
+        />
       </div>
 
       {/* Footer with creation date and delete */}
