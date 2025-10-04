@@ -2,6 +2,7 @@ import { useState, useEffect, useOptimistic, startTransition } from "react";
 import { Loader2, AlertCircle } from "lucide-react";
 import TodoItemComponent from "./TodoItem";
 import { useAuth } from "@/hooks/useAuth";
+import { useTodoMenuContext } from "@/contexts/TodoMenuContext";
 import { toast } from "@/hooks/useToast";
 import { cn } from "@/lib/utils";
 import { updateTodoItem } from "@/services/todoItemService";
@@ -37,6 +38,7 @@ export default function SystemTodoList({
   onItemUpdate
 }: SystemTodoListProps) {
   const { user } = useAuth();
+  const { loadSystemMenuCounts } = useTodoMenuContext();
   const [items, setItems] = useState<TodoItem[]>([]);
   const [optimisticItems, setOptimisticItems] = useOptimistic(
     items,
@@ -176,6 +178,8 @@ export default function SystemTodoList({
         onItemUpdate?.(result.data);
         // 외부 핸들러도 호출 (selectedItem 업데이트용)
         externalOnToggleImportant?.(id, isImportant);
+        // 시스템 메뉴 카운트 새로고침
+        loadSystemMenuCounts(user.id);
       } else {
         // 실패 시 롤백
         setItems((prev) =>

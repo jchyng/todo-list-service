@@ -20,7 +20,7 @@ import {
 } from "@/services/systemTodoService";
 import { useAuth } from "@/hooks/useAuth";
 import { useMenuType } from "@/hooks/useMenuType";
-import { TodoMenuProvider } from "@/contexts/TodoMenuContext";
+import { TodoMenuProvider, useTodoMenuContext } from "@/contexts/TodoMenuContext";
 import type { TailwindColor } from "@/constant/TailwindColor";
 import type { TodoItem } from "@/types/todoItem";
 import {
@@ -31,10 +31,11 @@ import {
 import { logger } from "@/lib/logger";
 import { toast } from "@/hooks/useToast";
 
-export default function TodoPage() {
+function TodoPageContent() {
   const { listId } = useParams();
   const { user } = useAuth();
   const menuInfo = useMenuType(listId);
+  const { loadSystemMenuCounts } = useTodoMenuContext();
   const [listData, setListData] = useState(null);
   const [systemListId, setSystemListId] = useState<number | null>(null); // "작업" 메뉴의 실제 list ID
   const [isLoading, setIsLoading] = useState(false);
@@ -251,6 +252,8 @@ export default function TodoPage() {
         if (selectedItem && selectedItem.id === id) {
           setSelectedItem(result.data);
         }
+        // 시스템 메뉴 카운트 새로고침
+        loadSystemMenuCounts(user.id);
       } else {
         // 실패 시 롤백
         if (selectedItem && selectedItem.id === id) {
@@ -299,6 +302,10 @@ export default function TodoPage() {
       const result = await updateTodoItem(user.id, id, data);
       if (result.success && result.data) {
         setSelectedItem(result.data);
+        // added_to_my_day_date 변경 시 시스템 메뉴 카운트 새로고침
+        if (data.added_to_my_day_date !== undefined) {
+          loadSystemMenuCounts(user.id);
+        }
       } else {
         toast.error("업데이트에 실패했습니다");
       }
@@ -324,72 +331,51 @@ export default function TodoPage() {
   };
 
   return (
-    <TodoMenuProvider userId={user?.id}>
-      <div className="h-screen flex flex-col bg-background">
-        <Header />
-        <ResizablePanelGroup direction="horizontal" className="flex-1">
-          {/* Sidebar 패널 */}
-          <ResizablePanel defaultSize={16} minSize={15} maxSize={30}>
-            <Sidebar />
-          </ResizablePanel>
+    <div className="h-screen flex flex-col bg-background">
+      <Header />
+      <ResizablePanelGroup direction="horizontal" className="flex-1">
+        {/* Sidebar 패널 */}
+        <ResizablePanel defaultSize={16} minSize={15} maxSize={30}>
+          <Sidebar />
+        </ResizablePanel>
 
-          <ResizableHandle className="bg-transparent hover:bg-blue-500/10 active:bg-blue-500/20 transition-colors" />
+        <ResizableHandle className="bg-transparent hover:bg-blue-500/10 active:bg-blue-500/20 transition-colors" />
 
-          {/* 메인 콘텐츠 영역 */}
-          <ResizablePanel defaultSize={selectedItem ? 55 : 80}>
-            <main className="flex flex-col h-full bg-gray-50 dark:bg-gray-800">
-              <ContentHeader {...getContentHeaderProps()} />
-              <div className="flex-1 overflow-hidden">
-                {isLoading && (
-                  <div className="flex items-center justify-center h-full">
-                    <div className="text-gray-500">로딩 중...</div>
+        {/* 메인 콘텐츠 영역 */}
+        <ResizablePanel defaultSize={selectedItem ? 55 : 80}>
+          <main className="flex flex-col h-full bg-gray-50 dark:bg-gray-800">
+            <ContentHeader {...getContentHeaderProps()} />
+            <div className="flex-1 overflow-hidden">
+              {isLoading && (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-gray-500">로딩 중...</div>
+                </div>
+              )}
+              {!isLoading &&
+                menuInfo.type === "list" &&
+                menuInfo.data?.id && (
+                  <div className="h-full overflow-y-auto">
+                    <TodoList
+                      listId={menuInfo.data.id}
+                      selectedItemId={selectedItemId}
+                      selectedItem={selectedItem}
+                      onSelectItem={handleSelectItem}
+                      onToggleComplete={handleToggleComplete}
+                      onToggleImportant={handleToggleImportant}
+                      onItemUpdate={handleItemUpdate}
+                      className="px-6 py-4"
+                    />
                   </div>
                 )}
-                {!isLoading &&
-                  menuInfo.type === "list" &&
-                  menuInfo.data?.id && (
-                    <div className="h-full overflow-y-auto">
-                      <TodoList
-                        listId={menuInfo.data.id}
-                        selectedItemId={selectedItemId}
-                        selectedItem={selectedItem}
-                        onSelectItem={handleSelectItem}
-                        onToggleComplete={handleToggleComplete}
-                        onToggleImportant={handleToggleImportant}
-                        onItemUpdate={handleItemUpdate}
-                        className="px-6 py-4"
-                      />
-                    </div>
-                  )}
-                {!isLoading && menuInfo.type === "system" && (
-                  <>
-                    {/* "작업" 메뉴: 실제 system list 렌더링 */}
-                    {(menuInfo.data as SystemMenuProps)?.virtualId ===
-                      "tasks" &&
-                      systemListId && (
-                        <div className="h-full overflow-y-auto">
-                          <TodoList
-                            listId={systemListId}
-                            selectedItemId={selectedItemId}
-                            selectedItem={selectedItem}
-                            onSelectItem={handleSelectItem}
-                            onToggleComplete={handleToggleComplete}
-                            onToggleImportant={handleToggleImportant}
-                            onItemUpdate={handleItemUpdate}
-                            className="px-6 py-4"
-                          />
-                        </div>
-                      )}
-                    {/* "오늘 할 일", "중요" 메뉴: SystemTodoList 렌더링 */}
-                    {((menuInfo.data as SystemMenuProps)?.virtualId ===
-                      "today" ||
-                      (menuInfo.data as SystemMenuProps)?.virtualId ===
-                        "important") && (
+              {!isLoading && menuInfo.type === "system" && (
+                <>
+                  {/* "작업" 메뉴: 실제 system list 렌더링 */}
+                  {(menuInfo.data as SystemMenuProps)?.virtualId ===
+                    "tasks" &&
+                    systemListId && (
                       <div className="h-full overflow-y-auto">
-                        <SystemTodoList
-                          virtualId={
-                            (menuInfo.data as SystemMenuProps).virtualId
-                          }
+                        <TodoList
+                          listId={systemListId}
                           selectedItemId={selectedItemId}
                           selectedItem={selectedItem}
                           onSelectItem={handleSelectItem}
@@ -400,46 +386,75 @@ export default function TodoPage() {
                         />
                       </div>
                     )}
-                  </>
-                )}
-                {!isLoading && menuInfo.type === "none" && (
-                  <div className="flex flex-col items-center justify-center h-full text-gray-500">
-                    <h3 className="text-lg font-medium mb-2">
-                      할 일 목록을 선택하세요
-                    </h3>
-                    <p className="text-sm">
-                      왼쪽에서 목록을 선택하거나 새로 만들어보세요
-                    </p>
-                  </div>
-                )}
-                {!isLoading && menuInfo.type === "unknown" && (
-                  <div className="flex flex-col items-center justify-center h-full text-gray-500">
-                    <h3 className="text-lg font-medium mb-2">
-                      목록을 찾을 수 없습니다
-                    </h3>
-                    <p className="text-sm">존재하지 않거나 삭제된 목록입니다</p>
-                  </div>
-                )}
-              </div>
-            </main>
-          </ResizablePanel>
+                  {/* "오늘 할 일", "중요" 메뉴: SystemTodoList 렌더링 */}
+                  {((menuInfo.data as SystemMenuProps)?.virtualId ===
+                    "today" ||
+                    (menuInfo.data as SystemMenuProps)?.virtualId ===
+                      "important") && (
+                    <div className="h-full overflow-y-auto">
+                      <SystemTodoList
+                        virtualId={
+                          (menuInfo.data as SystemMenuProps).virtualId
+                        }
+                        selectedItemId={selectedItemId}
+                        selectedItem={selectedItem}
+                        onSelectItem={handleSelectItem}
+                        onToggleComplete={handleToggleComplete}
+                        onToggleImportant={handleToggleImportant}
+                        onItemUpdate={handleItemUpdate}
+                        className="px-6 py-4"
+                      />
+                    </div>
+                  )}
+                </>
+              )}
+              {!isLoading && menuInfo.type === "none" && (
+                <div className="flex flex-col items-center justify-center h-full text-gray-500">
+                  <h3 className="text-lg font-medium mb-2">
+                    할 일 목록을 선택하세요
+                  </h3>
+                  <p className="text-sm">
+                    왼쪽에서 목록을 선택하거나 새로 만들어보세요
+                  </p>
+                </div>
+              )}
+              {!isLoading && menuInfo.type === "unknown" && (
+                <div className="flex flex-col items-center justify-center h-full text-gray-500">
+                  <h3 className="text-lg font-medium mb-2">
+                    목록을 찾을 수 없습니다
+                  </h3>
+                  <p className="text-sm">존재하지 않거나 삭제된 목록입니다</p>
+                </div>
+              )}
+            </div>
+          </main>
+        </ResizablePanel>
 
-          {/* 상세 패널 */}
-          {selectedItem && (
-            <>
-              <ResizableHandle className="bg-transparent hover:bg-blue-500/10 active:bg-blue-500/20 transition-colors" />
-              <ResizablePanel defaultSize={25} minSize={20} maxSize={40}>
-                <TodoDetailPanel
-                  item={selectedItem}
-                  onClose={() => handleSelectItem(null)}
-                  onUpdate={handleUpdateItem}
-                  onDelete={handleDeleteItem}
-                />
-              </ResizablePanel>
-            </>
-          )}
-        </ResizablePanelGroup>
-      </div>
+        {/* 상세 패널 */}
+        {selectedItem && (
+          <>
+            <ResizableHandle className="bg-transparent hover:bg-blue-500/10 active:bg-blue-500/20 transition-colors" />
+            <ResizablePanel defaultSize={25} minSize={20} maxSize={40}>
+              <TodoDetailPanel
+                item={selectedItem}
+                onClose={() => handleSelectItem(null)}
+                onUpdate={handleUpdateItem}
+                onDelete={handleDeleteItem}
+              />
+            </ResizablePanel>
+          </>
+        )}
+      </ResizablePanelGroup>
+    </div>
+  );
+}
+
+export default function TodoPage() {
+  const { user } = useAuth();
+
+  return (
+    <TodoMenuProvider userId={user?.id}>
+      <TodoPageContent />
     </TodoMenuProvider>
   );
 }
