@@ -4,7 +4,7 @@ import ListAddInput from "./ListAddInput";
 import GroupAddToggleBtn from "./GroupAddTogglBtn";
 import SimpleTooltip from "@/components/ui/SimpleTooltip";
 import { useAuthContext } from "@/hooks/useAuthContext";
-import { createGroup, createList } from "@/services/todoMenuService";
+import { createGroup, createList } from "@/services/todoMenu";
 import {
   generateTempId,
   createOptimisticGroup,

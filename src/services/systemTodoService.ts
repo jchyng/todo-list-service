@@ -2,7 +2,7 @@ import { supabase } from "@/lib/supabase";
 import type { ServiceResult } from "@/utils/serviceUtils";
 import { handleServiceError } from "@/utils/serviceUtils";
 import type { TodoItem } from "@/types/todoItem";
-import { convertRecurrenceRuleToRepeatConfig } from "./recurrenceRuleService";
+import { convertRecurrenceRuleToRepeatConfig } from "./recurrence";
 import { todoLogger } from "@/lib/logger";
 
 /**

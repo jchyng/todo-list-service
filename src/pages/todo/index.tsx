@@ -8,12 +8,12 @@ import TodoList from "./components/TodoList";
 import SystemTodoList from "./components/SystemTodoList";
 import TodoDetailPanel from "./components/TodoDetailPanel";
 import type { SystemMenuProps } from "@/data/SidebarMenuData";
-import { getListById, updateListColor } from "@/services/todoMenuService";
+import { getListById, updateListColor } from "@/services/todoMenu";
 import {
   updateTodoItem,
   deleteTodoItem,
   getTodoItems,
-} from "@/services/todoItemService";
+} from "@/services/todoItem";
 import {
   getSystemList,
   getTodayTodoItems,

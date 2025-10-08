@@ -18,7 +18,7 @@ import {
   createTodoItem,
   updateTodoItem,
   deleteTodoItem,
-} from "@/services/todoItemService";
+} from "@/services/todoItem";
 import type { TodoItem, TodoItemWithOptimistic } from "@/types/todoItem";
 
 interface TodoListProps {

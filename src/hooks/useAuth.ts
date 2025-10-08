@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
-import { createDefaultSystemList } from "@/services/todoMenuService";
+import { createDefaultSystemList } from "@/services/todoMenu";
 import type { User, Session, OAuthResponse } from "@supabase/supabase-js";
 import { authLogger } from "@/lib/logger";
 

@@ -77,6 +77,32 @@ export const backgroundColorClasses: Record<TailwindColor, string> = {
   rose: "bg-rose-50",
 };
 
+// 테두리 색상 클래스 매핑
+export const borderColorClasses: Record<TailwindColor, string> = {
+  slate: "border-slate-500",
+  gray: "border-gray-500",
+  zinc: "border-zinc-500",
+  neutral: "border-neutral-500",
+  stone: "border-stone-500",
+  red: "border-red-500",
+  orange: "border-orange-500",
+  amber: "border-amber-500",
+  yellow: "border-yellow-500",
+  lime: "border-lime-500",
+  green: "border-green-500",
+  emerald: "border-emerald-500",
+  teal: "border-teal-500",
+  cyan: "border-cyan-500",
+  sky: "border-sky-500",
+  blue: "border-blue-500",
+  indigo: "border-indigo-500",
+  violet: "border-violet-500",
+  purple: "border-purple-500",
+  fuchsia: "border-fuchsia-500",
+  pink: "border-pink-500",
+  rose: "border-rose-500",
+};
+
 // 랜덤 색상 선택 함수
 export const getRandomColor = (): TailwindColor => {
   const randomIndex = Math.floor(Math.random() * colors.length);

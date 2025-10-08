@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTodoMenuContext } from "@/contexts/TodoMenuContext";
 import { toast } from "@/hooks/useToast";
 import { cn } from "@/lib/utils";
-import { updateTodoItem, deleteTodoItem } from "@/services/todoItemService";
+import { updateTodoItem, deleteTodoItem } from "@/services/todoItem";
 import {
   getTodayTodoItems,
   getImportantTodoItems,
