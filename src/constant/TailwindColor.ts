@@ -51,6 +51,32 @@ export const colorClasses: Record<TailwindColor, string> = {
   rose: "bg-rose-500",
 };
 
+// 배경색 클래스 매핑 (연한 색상)
+export const backgroundColorClasses: Record<TailwindColor, string> = {
+  slate: "bg-slate-50",
+  gray: "bg-gray-50",
+  zinc: "bg-zinc-50",
+  neutral: "bg-neutral-50",
+  stone: "bg-stone-50",
+  red: "bg-red-50",
+  orange: "bg-orange-50",
+  amber: "bg-amber-50",
+  yellow: "bg-yellow-50",
+  lime: "bg-lime-50",
+  green: "bg-green-50",
+  emerald: "bg-emerald-50",
+  teal: "bg-teal-50",
+  cyan: "bg-cyan-50",
+  sky: "bg-sky-50",
+  blue: "bg-blue-50",
+  indigo: "bg-indigo-50",
+  violet: "bg-violet-50",
+  purple: "bg-purple-50",
+  fuchsia: "bg-fuchsia-50",
+  pink: "bg-pink-50",
+  rose: "bg-rose-50",
+};
+
 // 랜덤 색상 선택 함수
 export const getRandomColor = (): TailwindColor => {
   const randomIndex = Math.floor(Math.random() * colors.length);

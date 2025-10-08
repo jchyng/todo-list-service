@@ -33,7 +33,7 @@ export default function Sidebar() {
 
   return (
     <aside
-      className="pt-3 h-full border-r border-border bg-white dark:bg-gray-900 overflow-y-auto"
+      className="pt-3 h-full overflow-y-auto"
       role="navigation"
       aria-label="메인 네비게이션"
     >
@@ -44,7 +44,9 @@ export default function Sidebar() {
           const isActive = listId === item.virtualId;
 
           // 동적 카운트 가져오기
-          const count = systemMenuCounts[item.virtualId as keyof typeof systemMenuCounts] ?? 0;
+          const count =
+            systemMenuCounts[item.virtualId as keyof typeof systemMenuCounts] ??
+            0;
 
           return (
             <SystemMenu

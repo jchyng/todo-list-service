@@ -9,6 +9,7 @@ interface PopoverProps {
   align?: "start" | "center" | "end";
   side?: "top" | "right" | "bottom" | "left";
   className?: string;
+  triggerClassName?: string;
 }
 
 export function Popover({
@@ -18,7 +19,8 @@ export function Popover({
   onOpenChange,
   align = "center",
   side = "bottom",
-  className
+  className,
+  triggerClassName
 }: PopoverProps) {
   const [isOpen, setIsOpen] = React.useState(false);
   const [position, setPosition] = React.useState({ top: 0, left: 0 });
@@ -124,7 +126,7 @@ export function Popover({
       <div
         ref={triggerRef}
         onClick={handleTriggerClick}
-        className="inline-block cursor-pointer"
+        className={cn("inline-block cursor-pointer", triggerClassName)}
       >
         {children}
       </div>

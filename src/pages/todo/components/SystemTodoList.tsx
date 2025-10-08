@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTodoMenuContext } from "@/contexts/TodoMenuContext";
 import { toast } from "@/hooks/useToast";
 import { cn } from "@/lib/utils";
-import { updateTodoItem } from "@/services/todoItemService";
+import { updateTodoItem, deleteTodoItem } from "@/services/todoItemService";
 import {
   getTodayTodoItems,
   getImportantTodoItems,
@@ -200,6 +200,48 @@ export default function SystemTodoList({
     }
   };
 
+  // 할 일 삭제
+  const handleDelete = async (id: number) => {
+    if (!user?.id) return;
+
+    // 낙관적 업데이트 (즉시 UI에서 제거)
+    setItems((prev) => prev.filter((item) => item.id !== id));
+
+    // 선택된 아이템이 삭제되는 경우 선택 해제
+    if (selectedItemId === id) {
+      onSelectItem?.(null);
+    }
+
+    try {
+      const result = await deleteTodoItem(user.id, id);
+      if (result.success) {
+        toast.success("할 일이 삭제되었습니다");
+        // 시스템 메뉴 카운트 새로고침
+        loadSystemMenuCounts(user.id);
+      } else {
+        // 실패 시 롤백 - 다시 불러오기
+        const reloadResult = virtualId === "today"
+          ? await getTodayTodoItems(user.id)
+          : await getImportantTodoItems(user.id);
+
+        if (reloadResult.success) {
+          setItems(reloadResult.data || []);
+        }
+        toast.error("삭제에 실패했습니다");
+      }
+    } catch {
+      // 에러 시 롤백 - 다시 불러오기
+      const reloadResult = virtualId === "today"
+        ? await getTodayTodoItems(user.id)
+        : await getImportantTodoItems(user.id);
+
+      if (reloadResult.success) {
+        setItems(reloadResult.data || []);
+      }
+      toast.error("삭제 중 오류가 발생했습니다");
+    }
+  };
+
   const completedItems = optimisticItems.filter((item) => item.is_completed);
   const pendingItems = optimisticItems.filter((item) => !item.is_completed);
 
@@ -233,6 +275,7 @@ export default function SystemTodoList({
             onToggleComplete={handleToggleComplete}
             onToggleImportant={handleToggleImportant}
             onSelect={(id) => onSelectItem?.(id)}
+            onDelete={handleDelete}
             isSelected={selectedItemId === item.id}
           />
         ))}
@@ -252,6 +295,7 @@ export default function SystemTodoList({
                 onToggleComplete={handleToggleComplete}
                 onToggleImportant={handleToggleImportant}
                 onSelect={(id) => onSelectItem?.(id)}
+                onDelete={handleDelete}
                 isSelected={selectedItemId === item.id}
               />
             ))}

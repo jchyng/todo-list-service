@@ -1,4 +1,10 @@
-import { useState, useEffect, useOptimistic, useCallback, startTransition } from "react";
+import {
+  useState,
+  useEffect,
+  useOptimistic,
+  useCallback,
+  startTransition,
+} from "react";
 import { Plus, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +17,7 @@ import {
   getTodoItems,
   createTodoItem,
   updateTodoItem,
+  deleteTodoItem,
 } from "@/services/todoItemService";
 import type { TodoItem, TodoItemWithOptimistic } from "@/types/todoItem";
 
@@ -39,7 +46,7 @@ export default function TodoList({
   onSelectItem,
   onToggleComplete: externalOnToggleComplete,
   onToggleImportant: externalOnToggleImportant,
-  onItemUpdate
+  onItemUpdate,
 }: TodoListProps) {
   const { user } = useAuth();
   const { loadSystemMenuCounts } = useTodoMenuContext();
@@ -108,9 +115,7 @@ export default function TodoList({
   useEffect(() => {
     if (selectedItem && selectedItemId) {
       setItems((prev) =>
-        prev.map((item) =>
-          item.id === selectedItem.id ? selectedItem : item
-        )
+        prev.map((item) => (item.id === selectedItem.id ? selectedItem : item))
       );
     }
   }, [selectedItem, selectedItemId]);
@@ -174,7 +179,9 @@ export default function TodoList({
     });
 
     try {
-      const result = await updateTodoItem(user.id, id, { is_completed: isCompleted });
+      const result = await updateTodoItem(user.id, id, {
+        is_completed: isCompleted,
+      });
       if (result.success && result.data) {
         // 성공 시 실제 items 업데이트
         setItems((prev) =>
@@ -216,7 +223,9 @@ export default function TodoList({
     );
 
     try {
-      const result = await updateTodoItem(user.id, id, { is_important: isImportant });
+      const result = await updateTodoItem(user.id, id, {
+        is_important: isImportant,
+      });
       if (result.success && result.data) {
         // 성공 시 실제 items 업데이트
         setItems((prev) =>
@@ -248,8 +257,39 @@ export default function TodoList({
     }
   };
 
+  // 할 일 삭제
+  const handleDelete = async (id: number) => {
+    if (!user?.id) return;
 
+    // 낙관적 업데이트 (즉시 UI에서 제거)
+    startTransition(() => {
+      setOptimisticItems({ type: "DELETE", id });
+    });
 
+    // 선택된 아이템이 삭제되는 경우 선택 해제
+    if (selectedItemId === id) {
+      onSelectItem?.(null);
+    }
+
+    try {
+      const result = await deleteTodoItem(user.id, id);
+      if (result.success) {
+        // 성공 시 실제 items 업데이트
+        setItems((prev) => prev.filter((item) => item.id !== id));
+        toast.success("할 일이 삭제되었습니다");
+        // 시스템 메뉴 카운트 새로고침
+        loadSystemMenuCounts(user.id);
+      } else {
+        // 실패 시 롤백
+        loadItems();
+        toast.error("삭제에 실패했습니다");
+      }
+    } catch {
+      // 에러 시 롤백
+      loadItems();
+      toast.error("삭제 중 오류가 발생했습니다");
+    }
+  };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && newItemTitle.trim()) {
@@ -263,16 +303,28 @@ export default function TodoList({
 
   if (isLoading) {
     return (
-      <div className={cn("flex flex-col items-center justify-center py-12", className)}>
+      <div
+        className={cn(
+          "flex flex-col items-center justify-center py-12",
+          className
+        )}
+      >
         <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
-        <p className="mt-2 text-sm text-gray-500">할 일 목록을 불러오는 중...</p>
+        <p className="mt-2 text-sm text-gray-500">
+          할 일 목록을 불러오는 중...
+        </p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className={cn("flex flex-col items-center justify-center py-12", className)}>
+      <div
+        className={cn(
+          "flex flex-col items-center justify-center py-12",
+          className
+        )}
+      >
         <AlertCircle className="w-8 h-8 text-red-400" />
         <p className="mt-2 text-sm text-red-500">{error}</p>
         <Button
@@ -297,7 +349,7 @@ export default function TodoList({
           onKeyDown={handleKeyDown}
           placeholder="새 할 일을 입력하세요..."
           disabled={isAddingItem}
-          className="flex-1"
+          className="flex-1 bg-white dark:bg-gray-900"
         />
         <Button
           onClick={handleAddItem}
@@ -323,6 +375,7 @@ export default function TodoList({
             onToggleComplete={handleToggleComplete}
             onToggleImportant={handleToggleImportant}
             onSelect={(id) => onSelectItem?.(id)}
+            onDelete={handleDelete}
             isSelected={selectedItemId === item.id}
           />
         ))}
@@ -342,6 +395,7 @@ export default function TodoList({
                 onToggleComplete={handleToggleComplete}
                 onToggleImportant={handleToggleImportant}
                 onSelect={(id) => onSelectItem?.(id)}
+                onDelete={handleDelete}
                 isSelected={selectedItemId === item.id}
               />
             ))}
@@ -351,13 +405,11 @@ export default function TodoList({
         {/* 빈 상태 */}
         {optimisticItems.length === 0 && (
           <div className="flex flex-col items-center justify-center py-12 text-gray-500">
-            <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
+            <div className="w-16 h-16 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
               <Plus className="w-8 h-8" />
             </div>
             <h3 className="text-lg font-medium mb-2">할 일이 없습니다</h3>
-            <p className="text-sm text-center">
-              새로운 할 일을 추가해보세요
-            </p>
+            <p className="text-sm text-center">새로운 할 일을 추가해보세요</p>
           </div>
         )}
       </div>

@@ -1,7 +1,8 @@
 import { memo } from "react";
-import { Check, Star, FileText, Calendar, Repeat, Sun } from "lucide-react";
+import { Check, Star, FileText, Calendar, Repeat, Sun, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import SimpleDropdown from "@/components/ui/SimpleDropdown";
 import type { TodoItem } from "@/types/todoItem";
 
 interface TodoItemProps {
@@ -9,6 +10,7 @@ interface TodoItemProps {
   onToggleComplete: (id: number, isCompleted: boolean) => void;
   onToggleImportant: (id: number, isImportant: boolean) => void;
   onSelect: (id: number) => void;
+  onDelete: (id: number) => void;
   isSelected?: boolean;
 }
 
@@ -17,6 +19,7 @@ const TodoItemComponent = memo(function TodoItemComponent({
   onToggleComplete,
   onToggleImportant,
   onSelect,
+  onDelete,
   isSelected = false,
 }: TodoItemProps) {
   const handleToggleComplete = (e: React.MouseEvent) => {
@@ -31,6 +34,10 @@ const TodoItemComponent = memo(function TodoItemComponent({
 
   const handleItemClick = () => {
     onSelect(item.id);
+  };
+
+  const handleDelete = () => {
+    onDelete(item.id);
   };
 
   // 오늘 할 일 판단 함수
@@ -84,15 +91,31 @@ const TodoItemComponent = memo(function TodoItemComponent({
 
   const dueDateInfo = item.due_date ? formatDueDate(item.due_date) : null;
 
+  // 추가 정보 존재 여부 확인
+  const hasMetadata = dueDateInfo || isMyDay() || (item.repeat_config && item.repeat_config.type !== "none") || item.description;
+
   return (
-    <div
+    <SimpleDropdown
+      triggerType="contextmenu"
+      menuItems={[
+        {
+          label: "삭제",
+          icon: <Trash2 className="w-4 h-4" />,
+          onClick: handleDelete,
+          variant: "destructive",
+        },
+      ]}
+    >
+      <div
       onClick={handleItemClick}
       className={cn(
-        "group flex items-center gap-3 px-4 py-3 cursor-pointer transition-all duration-150",
-        "hover:bg-gray-50 dark:hover:bg-gray-800/50",
+        "group flex items-center gap-2.5 px-3 mb-1 rounded-md cursor-pointer transition-all duration-200",
+        hasMetadata ? "py-2" : "py-2.5",
+        "bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700",
+        "hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600",
         isSelected &&
-          "bg-blue-50 dark:bg-blue-900/20 border-r-2 border-r-blue-500",
-        item.is_completed && "opacity-70"
+          "border-blue-300 dark:border-blue-600 shadow-sm",
+        item.is_completed && "opacity-60"
       )}
       role="button"
       tabIndex={0}
@@ -113,10 +136,10 @@ const TodoItemComponent = memo(function TodoItemComponent({
         size="icon"
         onClick={handleToggleComplete}
         className={cn(
-          "w-5 h-5 rounded-full border-2 transition-all duration-200 hover:scale-110",
+          "w-4 h-4 rounded-full border-2 transition-all duration-200 hover:scale-110 flex-shrink-0",
           item.is_completed
             ? "bg-blue-500 border-blue-500 text-white hover:bg-blue-600"
-            : "border-gray-300 hover:border-blue-400 hover:bg-blue-50 dark:border-gray-600 dark:hover:border-blue-500 dark:hover:bg-blue-900/20"
+            : "border-gray-400 hover:border-blue-500 hover:bg-blue-50 dark:border-gray-500 dark:hover:border-blue-400 dark:hover:bg-blue-900/30"
         )}
         aria-label={
           item.is_completed
@@ -125,7 +148,7 @@ const TodoItemComponent = memo(function TodoItemComponent({
         }
         type="button"
       >
-        {item.is_completed && <Check className="w-3 h-3" />}
+        {item.is_completed && <Check className="w-2.5 h-2.5" />}
       </Button>
 
       {/* Content */}
@@ -133,17 +156,17 @@ const TodoItemComponent = memo(function TodoItemComponent({
         {/* Title */}
         <h3
           className={cn(
-            "text-sm font-normal leading-relaxed",
+            "text-sm font-medium leading-snug",
             item.is_completed &&
               "line-through text-gray-500 dark:text-gray-400",
-            !item.is_completed && "text-gray-900 dark:text-gray-100"
+            !item.is_completed && "text-gray-900 dark:text-gray-50"
           )}
         >
           {item.title}
         </h3>
 
         {/* Description text below title */}
-        <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 leading-relaxed mt-0.5">
+        <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 leading-snug mt-0.5">
           {/* Due date */}
           {dueDateInfo && (
             <div className="flex items-center gap-1">
@@ -160,19 +183,19 @@ const TodoItemComponent = memo(function TodoItemComponent({
             </>
           )}
 
-          {/* Note indicator */}
-          {item.description && (
-            <>
-              {(dueDateInfo || isMyDay()) && <span>·</span>}
-              <FileText className="w-3 h-3" />
-            </>
-          )}
-
           {/* Repeat indicator */}
           {item.repeat_config && item.repeat_config.type !== "none" && (
             <>
-              {(dueDateInfo || isMyDay() || item.description) && <span>·</span>}
+              {(dueDateInfo || isMyDay()) && <span>·</span>}
               <Repeat className="w-3 h-3" />
+            </>
+          )}
+
+          {/* Note indicator */}
+          {item.description && (
+            <>
+              {(dueDateInfo || isMyDay() || (item.repeat_config && item.repeat_config.type !== "none")) && <span>·</span>}
+              <FileText className="w-3 h-3" />
             </>
           )}
         </div>
@@ -184,7 +207,7 @@ const TodoItemComponent = memo(function TodoItemComponent({
         size="icon"
         onClick={handleToggleImportant}
         className={cn(
-          "w-6 h-6 opacity-0 group-hover:opacity-100 transition-opacity duration-150",
+          "w-5 h-5 opacity-0 group-hover:opacity-100 transition-opacity duration-150",
           item.is_important && "opacity-100",
           "hover:scale-110"
         )}
@@ -197,7 +220,7 @@ const TodoItemComponent = memo(function TodoItemComponent({
       >
         <Star
           className={cn(
-            "w-4 h-4 transition-all duration-200",
+            "w-3.5 h-3.5 transition-all duration-200",
             item.is_important
               ? "fill-yellow-400 text-yellow-400"
               : "text-gray-400 hover:text-yellow-400"
@@ -205,6 +228,7 @@ const TodoItemComponent = memo(function TodoItemComponent({
         />
       </Button>
     </div>
+    </SimpleDropdown>
   );
 });
 

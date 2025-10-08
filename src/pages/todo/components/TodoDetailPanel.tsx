@@ -92,7 +92,7 @@ export default function TodoDetailPanel({
   };
 
   return (
-    <div className="h-full bg-gray-50 dark:bg-gray-900 border-l border-gray-200 dark:border-gray-700 flex flex-col animate-in slide-in-from-right duration-300 ease-out">
+    <div className="h-full  border-gray-200 dark:border-gray-700 flex flex-col animate-in slide-in-from-right duration-300 ease-out">
       {/* Header */}
       <div className="flex items-center justify-end p-4">
         <Button
@@ -108,7 +108,7 @@ export default function TodoDetailPanel({
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-4 space-y-4">
         {/* Title with Completion Circle and Star */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-3">
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-3">
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"
@@ -153,52 +153,64 @@ export default function TodoDetailPanel({
         {/* Action Buttons */}
         <div className="flex flex-col gap-2">
           {/* Add to My Day */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-            <button
-              onClick={handleToggleMyDay}
-              className={cn(
-                "w-full flex items-center gap-3 px-3 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-750 rounded-lg transition-colors group",
-                isAddedToMyDay() && "bg-blue-50 dark:bg-blue-900/20"
-              )}
-            >
-              <Sun
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-0">
+            <div className="w-full flex items-center gap-2">
+              <button
                 className={cn(
-                  "w-5 h-5 flex-shrink-0",
+                  "flex items-center gap-3 flex-1 px-0 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md transition-colors text-sm",
                   isAddedToMyDay()
                     ? "text-blue-500"
-                    : "text-gray-500 dark:text-gray-400"
-                )}
-              />
-              <span
-                className={cn(
-                  "text-sm group-hover:text-blue-500",
-                  isAddedToMyDay()
-                    ? "text-blue-500 font-medium"
                     : "text-gray-700 dark:text-gray-300"
                 )}
+                onClick={handleToggleMyDay}
               >
-                {isAddedToMyDay() ? "오늘 할 일에서 제거" : "오늘 할 일에 추가"}
-              </span>
-            </button>
+                <Sun
+                  className={cn(
+                    "w-4 h-4 flex-shrink-0",
+                    isAddedToMyDay()
+                      ? "text-blue-500"
+                      : "text-gray-500 dark:text-gray-400"
+                  )}
+                />
+                <span className="flex-1">
+                  {isAddedToMyDay()
+                    ? "오늘 할 일에 추가됨"
+                    : "오늘 할 일에 추가"}
+                </span>
+              </button>
+              {isAddedToMyDay() && (
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleToggleMyDay();
+                  }}
+                  className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors"
+                  type="button"
+                >
+                  <X className="h-4 w-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200" />
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Set Due Date */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-0">
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-0">
             <DatePicker
               selected={item.due_date ? new Date(item.due_date) : undefined}
               onSelect={handleDueDateChange}
               placeholder="기한 설정"
-              className="w-full py-3 text-left border-none h-auto shadow-none text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-750 hover:text-blue-500 rounded-lg transition-colors"
+              className="w-full text-left border-none h-auto shadow-none text-sm rounded-lg transition-colors"
             />
           </div>
 
           {/* Repeat */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-0">
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-0">
             <RepeatPicker
               value={item.repeat_config}
               onChange={handleRepeatChange}
               placeholder="반복 설정"
-              className="w-full py-3 text-left border-none h-auto shadow-none text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-750 hover:text-blue-500 rounded-lg transition-colors"
+              className="w-full text-left border-none h-auto shadow-none text-sm rounded-lg transition-colors"
             />
           </div>
         </div>

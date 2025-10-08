@@ -104,11 +104,12 @@ export function DatePicker({
         onOpenChange={setOpen}
         content={calendarContent}
         align="start"
+        triggerClassName="flex-1"
       >
         <button
           className={cn(
             "flex items-center gap-3 flex-1 px-0 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md transition-colors text-sm",
-            !selected && "text-gray-500",
+            selected ? "text-blue-500" : "text-gray-700 dark:text-gray-300",
             disabled && "opacity-50 pointer-events-none",
             className
           )}

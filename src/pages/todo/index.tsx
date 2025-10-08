@@ -26,6 +26,7 @@ import {
   useTodoMenuContext,
 } from "@/contexts/TodoMenuContext";
 import type { TailwindColor } from "@/constant/TailwindColor";
+import { backgroundColorClasses } from "@/constant/TailwindColor";
 import type { TodoItem } from "@/types/todoItem";
 import {
   ResizablePanelGroup,
@@ -62,6 +63,19 @@ function TodoPageContent() {
     listData: menuInfo.type === "list" ? listData : undefined,
     onColorUpdate: handleColorUpdate,
   });
+
+  // 배경색 클래스 가져오기
+  const getBackgroundColor = () => {
+    if (menuInfo.type === "system") {
+      return "bg-blue-100/60 dark:bg-gray-900";
+    }
+    if (menuInfo.type === "list" && listData?.color) {
+      return `${
+        backgroundColorClasses[listData.color as TailwindColor]
+      } dark:bg-gray-800`;
+    }
+    return "bg-gray-50 dark:bg-gray-800";
+  };
 
   // "작업" 메뉴인 경우 system list ID 가져오기
   useEffect(() => {
@@ -334,7 +348,7 @@ function TodoPageContent() {
       <Header />
       <ResizablePanelGroup direction="horizontal" className="flex-1">
         {/* Sidebar 패널 */}
-        <ResizablePanel defaultSize={20} minSize={15} maxSize={30}>
+        <ResizablePanel defaultSize={20} minSize={10} maxSize={30}>
           <Sidebar />
         </ResizablePanel>
 
@@ -342,7 +356,7 @@ function TodoPageContent() {
 
         {/* 메인 콘텐츠 영역 */}
         <ResizablePanel defaultSize={selectedItem ? 55 : 80}>
-          <main className="flex flex-col h-full bg-gray-50 dark:bg-gray-800">
+          <main className={`flex flex-col h-full ${getBackgroundColor()}`}>
             <ContentHeader {...getContentHeaderProps()} />
             <div className="flex-1 overflow-hidden">
               {isLoading && (
@@ -360,7 +374,7 @@ function TodoPageContent() {
                     onToggleComplete={handleToggleComplete}
                     onToggleImportant={handleToggleImportant}
                     onItemUpdate={handleItemUpdate}
-                    className="px-6 py-4"
+                    className="px-4 py-3"
                   />
                 </div>
               )}
@@ -378,7 +392,7 @@ function TodoPageContent() {
                           onToggleComplete={handleToggleComplete}
                           onToggleImportant={handleToggleImportant}
                           onItemUpdate={handleItemUpdate}
-                          className="px-6 py-4"
+                          className="px-4 py-3"
                         />
                       </div>
                     )}
@@ -395,7 +409,7 @@ function TodoPageContent() {
                         onToggleComplete={handleToggleComplete}
                         onToggleImportant={handleToggleImportant}
                         onItemUpdate={handleItemUpdate}
-                        className="px-6 py-4"
+                        className="px-4 py-3"
                       />
                     </div>
                   )}
