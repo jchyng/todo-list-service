@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { Check, Star, FileText, Calendar, Repeat } from "lucide-react";
+import { Check, Star, FileText, Calendar, Repeat, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { TodoItem } from "@/types/todoItem";
@@ -144,24 +144,26 @@ const TodoItemComponent = memo(function TodoItemComponent({
 
         {/* Description text below title */}
         <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 leading-relaxed mt-0.5">
-          {/* My Day indicator */}
-          {isMyDay() && <span>오늘 할 일</span>}
-
           {/* Due date */}
           {dueDateInfo && (
+            <div className="flex items-center gap-1">
+              <Calendar className="w-3 h-3" />
+              <span>{dueDateInfo.text}</span>
+            </div>
+          )}
+
+          {/* My Day indicator */}
+          {isMyDay() && (
             <>
-              {isMyDay() && <span>·</span>}
-              <div className="flex items-center gap-1">
-                <Calendar className="w-3 h-3" />
-                <span>{dueDateInfo.text}</span>
-              </div>
+              {dueDateInfo && <span>·</span>}
+              <Sun className="w-3 h-3" />
             </>
           )}
 
           {/* Note indicator */}
           {item.description && (
             <>
-              <span>·</span>
+              {(dueDateInfo || isMyDay()) && <span>·</span>}
               <FileText className="w-3 h-3" />
             </>
           )}
@@ -169,7 +171,7 @@ const TodoItemComponent = memo(function TodoItemComponent({
           {/* Repeat indicator */}
           {item.repeat_config && item.repeat_config.type !== "none" && (
             <>
-              <span>·</span>
+              {(dueDateInfo || isMyDay() || item.description) && <span>·</span>}
               <Repeat className="w-3 h-3" />
             </>
           )}

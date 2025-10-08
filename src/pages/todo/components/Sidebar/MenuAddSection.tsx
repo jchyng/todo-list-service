@@ -72,7 +72,7 @@ export function MenuAddSection({
       setUserMenus(prev =>
         prev.map(item =>
           item.id === tempId
-            ? { ...item, isPending: false, id: result.data.id }
+            ? { ...item, isPending: false, id: (result.data as any).id }
             : item
         )
       );
@@ -120,7 +120,7 @@ export function MenuAddSection({
       setUserMenus(prev =>
         prev.map(item =>
           item.id === tempId
-            ? { ...item, isPending: false, id: result.data.id }
+            ? { ...item, isPending: false, id: (result.data as any).id }
             : item
         )
       );

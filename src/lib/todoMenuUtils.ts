@@ -116,13 +116,14 @@ const createListFromRpcData = (item: RpcMenuItem): UserMenuProps => ({
 });
 
 const addListToGroup = (list: RpcMenuItem, groupsMap: Map<number, UserMenuProps>) => {
+  if (!list.parent_id) return;
   const parentGroup = groupsMap.get(list.parent_id);
   if (parentGroup?.children) {
     parentGroup.children.push({
       id: list.id,
       text: list.name,
       type: "list",
-      color: list.color,
+      color: list.color || '#gray',
       count: list.item_count || 0,
     });
   }

@@ -19,7 +19,7 @@ export async function createGroup(
 
   if (groupError) return handleServiceError(groupError);
 
-  const { data: positionData, error: positionError } = await supabase.rpc(
+  const { error: positionError } = await supabase.rpc(
     "add_menu_item_at_index",
     {
       p_user_id: userId,
@@ -61,7 +61,7 @@ export async function createList(
 
   if (listError) return handleServiceError(listError);
 
-  const { data: positionData, error: positionError } = await supabase.rpc(
+  const { error: positionError } = await supabase.rpc(
     "add_menu_item_at_index",
     {
       p_user_id: userId,
@@ -183,7 +183,7 @@ export async function dissolveGroup(userId: string, groupId: number): Promise<Se
 
     return { success: true, data: { updatedLists: updatedLists.length } };
   } catch (error) {
-    return handleServiceError(error);
+    return handleServiceError(error as any);
   }
 }
 

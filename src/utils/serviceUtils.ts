@@ -20,7 +20,7 @@ function getErrorMessage(error: ErrorLike): string {
   return "Unknown error occurred";
 }
 
-export const handleServiceError = (error: ErrorLike): ServiceResult => ({
+export const handleServiceError = <T = unknown>(error: ErrorLike): ServiceResult<T> => ({
   success: false,
   error: getErrorMessage(error)
 });

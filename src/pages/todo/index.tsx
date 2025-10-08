@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Header } from "@/components/Header";
 import Sidebar from "./components/Sidebar";
 import ContentHeader from "./components/ContentHeader";
+import type { ListData } from "./components/ContentHeader";
 import TodoList from "./components/TodoList";
 import SystemTodoList from "./components/SystemTodoList";
 import TodoDetailPanel from "./components/TodoDetailPanel";
@@ -20,7 +21,10 @@ import {
 } from "@/services/systemTodoService";
 import { useAuth } from "@/hooks/useAuth";
 import { useMenuType } from "@/hooks/useMenuType";
-import { TodoMenuProvider, useTodoMenuContext } from "@/contexts/TodoMenuContext";
+import {
+  TodoMenuProvider,
+  useTodoMenuContext,
+} from "@/contexts/TodoMenuContext";
 import type { TailwindColor } from "@/constant/TailwindColor";
 import type { TodoItem } from "@/types/todoItem";
 import {
@@ -36,7 +40,7 @@ function TodoPageContent() {
   const { user } = useAuth();
   const menuInfo = useMenuType(listId);
   const { loadSystemMenuCounts } = useTodoMenuContext();
-  const [listData, setListData] = useState(null);
+  const [listData, setListData] = useState<ListData | null>(null);
   const [systemListId, setSystemListId] = useState<number | null>(null); // "작업" 메뉴의 실제 list ID
   const [isLoading, setIsLoading] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
@@ -87,8 +91,8 @@ function TodoPageContent() {
       setIsLoading(true);
       getListById(user.id, menuInfo.data.id)
         .then((result) => {
-          if (result.success) {
-            setListData(result.data);
+          if (result.success && result.data) {
+            setListData(result.data as ListData);
           }
         })
         .finally(() => {
@@ -100,12 +104,7 @@ function TodoPageContent() {
   }, [menuInfo.type, menuInfo.data?.id, user?.id]);
 
   // 색상 업데이트 핸들러
-  const handleColorUpdate = async (newData: {
-    id: number;
-    name: string;
-    color: TailwindColor;
-    is_system: boolean;
-  }) => {
+  const handleColorUpdate = async (newData: ListData) => {
     if (!user?.id || menuInfo.type !== "list" || !menuInfo.data?.id) return;
 
     // 낙관적 업데이트
@@ -117,20 +116,20 @@ function TodoPageContent() {
         menuInfo.data.id,
         newData.color as TailwindColor
       );
-      if (result.success) {
-        setListData(result.data);
+      if (result.success && result.data) {
+        setListData(result.data as ListData);
       } else {
         // 실패 시 롤백 (원래 데이터로 복구)
         const originalResult = await getListById(user.id, menuInfo.data.id);
-        if (originalResult.success) {
-          setListData(originalResult.data);
+        if (originalResult.success && originalResult.data) {
+          setListData(originalResult.data as ListData);
         }
       }
     } catch {
       // 에러 시 롤백
       const originalResult = await getListById(user.id, menuInfo.data.id);
-      if (originalResult.success) {
-        setListData(originalResult.data);
+      if (originalResult.success && originalResult.data) {
+        setListData(originalResult.data as ListData);
       }
     }
   };
@@ -335,7 +334,7 @@ function TodoPageContent() {
       <Header />
       <ResizablePanelGroup direction="horizontal" className="flex-1">
         {/* Sidebar 패널 */}
-        <ResizablePanel defaultSize={16} minSize={15} maxSize={30}>
+        <ResizablePanel defaultSize={20} minSize={15} maxSize={30}>
           <Sidebar />
         </ResizablePanel>
 
@@ -351,27 +350,24 @@ function TodoPageContent() {
                   <div className="text-gray-500">로딩 중...</div>
                 </div>
               )}
-              {!isLoading &&
-                menuInfo.type === "list" &&
-                menuInfo.data?.id && (
-                  <div className="h-full overflow-y-auto">
-                    <TodoList
-                      listId={menuInfo.data.id}
-                      selectedItemId={selectedItemId}
-                      selectedItem={selectedItem}
-                      onSelectItem={handleSelectItem}
-                      onToggleComplete={handleToggleComplete}
-                      onToggleImportant={handleToggleImportant}
-                      onItemUpdate={handleItemUpdate}
-                      className="px-6 py-4"
-                    />
-                  </div>
-                )}
+              {!isLoading && menuInfo.type === "list" && menuInfo.data?.id && (
+                <div className="h-full overflow-y-auto">
+                  <TodoList
+                    listId={menuInfo.data.id}
+                    selectedItemId={selectedItemId}
+                    selectedItem={selectedItem}
+                    onSelectItem={handleSelectItem}
+                    onToggleComplete={handleToggleComplete}
+                    onToggleImportant={handleToggleImportant}
+                    onItemUpdate={handleItemUpdate}
+                    className="px-6 py-4"
+                  />
+                </div>
+              )}
               {!isLoading && menuInfo.type === "system" && (
                 <>
                   {/* "작업" 메뉴: 실제 system list 렌더링 */}
-                  {(menuInfo.data as SystemMenuProps)?.virtualId ===
-                    "tasks" &&
+                  {(menuInfo.data as SystemMenuProps)?.virtualId === "tasks" &&
                     systemListId && (
                       <div className="h-full overflow-y-auto">
                         <TodoList
@@ -387,15 +383,12 @@ function TodoPageContent() {
                       </div>
                     )}
                   {/* "오늘 할 일", "중요" 메뉴: SystemTodoList 렌더링 */}
-                  {((menuInfo.data as SystemMenuProps)?.virtualId ===
-                    "today" ||
+                  {((menuInfo.data as SystemMenuProps)?.virtualId === "today" ||
                     (menuInfo.data as SystemMenuProps)?.virtualId ===
                       "important") && (
                     <div className="h-full overflow-y-auto">
                       <SystemTodoList
-                        virtualId={
-                          (menuInfo.data as SystemMenuProps).virtualId
-                        }
+                        virtualId={(menuInfo.data as SystemMenuProps).virtualId}
                         selectedItemId={selectedItemId}
                         selectedItem={selectedItem}
                         onSelectItem={handleSelectItem}
@@ -434,7 +427,7 @@ function TodoPageContent() {
         {selectedItem && (
           <>
             <ResizableHandle className="bg-transparent hover:bg-blue-500/10 active:bg-blue-500/20 transition-colors" />
-            <ResizablePanel defaultSize={25} minSize={20} maxSize={40}>
+            <ResizablePanel defaultSize={25} minSize={10} maxSize={40}>
               <TodoDetailPanel
                 item={selectedItem}
                 onClose={() => handleSelectItem(null)}

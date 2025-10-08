@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 import { createDefaultSystemList } from "@/services/todoMenuService";
-import type { User, Session } from "@supabase/supabase-js";
+import type { User, Session, OAuthResponse } from "@supabase/supabase-js";
 import { authLogger } from "@/lib/logger";
 
 // -------------------------------------------------------------- useAuth Hook
@@ -62,7 +62,7 @@ export function useAuth() {
     providerName,
   }: {
     providerName: "google" | "kakao" | "github";
-  }) => {
+  }): Promise<{ data?: OAuthResponse; error?: Error | null }> => {
     try {
       setLoading(true);
       const { data, error } = await supabase.auth.signInWithOAuth({
@@ -74,10 +74,10 @@ export function useAuth() {
 
       if (error) throw error;
 
-      return { data };
+      return { data: data as unknown as OAuthResponse };
     } catch (error) {
       authLogger.error("로그인 실패", { error, providerName });
-      return { error };
+      return { error: error instanceof Error ? error : new Error(String(error)) };
     } finally {
       setLoading(false);
     }

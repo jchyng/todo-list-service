@@ -8,26 +8,19 @@ export function AppRouter() {
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
-      <Route
-        path="/todo/:listId"
-        element={
-          <ProtectedRoute>
-            <TodoPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/calendar"
-        element={
-          <ProtectedRoute>
+      <Route element={<ProtectedRoute />}>
+        <Route path="/todo/:listId" element={<TodoPage />} />
+        <Route
+          path="/calendar"
+          element={
             <div className="min-h-screen flex items-center justify-center">
               <h1 className="text-4xl font-bold">
                 Calendar Page (Coming Soon)
               </h1>
             </div>
-          </ProtectedRoute>
-        }
-      />
+          }
+        />
+      </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

@@ -63,7 +63,7 @@ export function TodoMenuProvider({ children, userId }: TodoMenuProviderProps) {
       if (!result.success) throw new Error(result.error);
 
       if (result.data) {
-        const transformedMenus = transformRpcMenuData(result.data);
+        const transformedMenus = transformRpcMenuData(result.data as any[]);
         setUserMenus(transformedMenus);
 
         contextLogger.success("메뉴 로드 완료", {
@@ -222,8 +222,8 @@ export function TodoMenuProvider({ children, userId }: TodoMenuProviderProps) {
       if (!result.success) throw new Error(result.error);
 
       if (result.data) {
-        setSystemMenuCounts(result.data);
-        contextLogger.success("시스템 메뉴 카운트 로드 완료", result.data);
+        setSystemMenuCounts(result.data as SystemMenuCounts);
+        contextLogger.success("시스템 메뉴 카운트 로드 완료", result.data as Record<string, unknown>);
       }
     } catch (err) {
       contextLogger.error("시스템 메뉴 카운트 로드 실패", { error: err });

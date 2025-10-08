@@ -66,7 +66,7 @@ export async function createTodoItem(
       if (!recurrenceResult.success) {
         return { success: false, error: recurrenceResult.error };
       }
-      recurrenceId = recurrenceResult.data.id;
+      recurrenceId = recurrenceResult.data?.id;
     }
 
     const { data: { session } } = await supabase.auth.getSession();
@@ -110,7 +110,7 @@ export async function createTodoItem(
       if (recurrenceId) {
         await deleteRecurrenceRule(recurrenceId);
       }
-      return handleServiceError(error);
+      return handleServiceError<TodoItem>(error);
     }
 
     // 반복 설정 정보를 추가하여 반환
@@ -140,7 +140,7 @@ export async function getTodoItems(
 
     if (error) {
       todoLogger.error('getTodoItems query failed', { error, userId: _userId, listId });
-      return handleServiceError(error);
+      return handleServiceError<TodoItem[]>(error);
     }
 
     const enrichedData = await enrichItemsWithRecurrence(data || []);
@@ -180,7 +180,7 @@ export async function updateTodoItem(
       .eq("user_id", _userId)
       .single();
 
-    if (fetchError) return handleServiceError(fetchError);
+    if (fetchError) return handleServiceError<TodoItem>(fetchError);
 
     // 반복 설정 처리
     if (data.repeat_config !== undefined) {
@@ -205,7 +205,7 @@ export async function updateTodoItem(
           if (!createResult.success) {
             return { success: false, error: createResult.error };
           }
-          updateData.recurrence_id = createResult.data.id;
+          updateData.recurrence_id = createResult.data?.id;
         }
       }
 
@@ -259,7 +259,7 @@ export async function deleteTodoItem(
       .eq("user_id", _userId)
       .single();
 
-    if (fetchError) return handleServiceError(fetchError);
+    if (fetchError) return handleServiceError<TodoItem>(fetchError);
 
     // 2. 반복 작업인 경우 예외 날짜로 기록
     if (item.recurrence_id && item.due_date) {
@@ -306,7 +306,7 @@ export async function toggleTodoCompletion(
     const updatedItem = updateResult.data;
 
     // 2. 반복 작업이 완료된 경우 다음 인스턴스 생성
-    if (isCompleted && updatedItem.recurrence_id) {
+    if (isCompleted && updatedItem && updatedItem.recurrence_id) {
       try {
         // SQL 함수 호출로 다음 반복 작업 생성
         const { data: nextTaskResult, error: rpcError } = await supabase.rpc(

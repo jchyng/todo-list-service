@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import ColorPicker from "./ColorPicker";
 import { logger } from "@/lib/logger";
 
-interface ListData {
+export interface ListData {
   id: number;
   name: string;
   color: string | null;
@@ -16,7 +16,7 @@ interface ListData {
 interface ContentHeaderProps {
   type: "system" | "list" | "none" | "unknown";
   systemMenu?: SystemMenuProps;
-  listData?: ListData;
+  listData?: ListData | null;
   onColorUpdate?: (newData: ListData) => void;
 }
 

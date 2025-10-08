@@ -16,11 +16,11 @@ interface TodoDetailPanelProps {
     data: {
       title?: string;
       description?: string;
-      due_date?: string;
+      due_date?: string | null;
       added_to_my_day_date?: string | null;
       is_completed?: boolean;
       is_important?: boolean;
-      repeat_config?: RepeatConfig;
+      repeat_config?: RepeatConfig | null;
     }
   ) => void;
   onDelete: (id: number) => void;

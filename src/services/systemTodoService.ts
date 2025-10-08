@@ -65,7 +65,7 @@ export async function getTodayTodoItems(
 
     if (error) {
       todoLogger.error('getTodayTodoItems query failed', { error });
-      return handleServiceError(error);
+      return handleServiceError<TodoItem[]>(error);
     }
 
     const enrichedData = await enrichItemsWithRecurrence(data || []);
@@ -92,7 +92,7 @@ export async function getImportantTodoItems(
 
     if (error) {
       todoLogger.error('getImportantTodoItems query failed', { error });
-      return handleServiceError(error);
+      return handleServiceError<TodoItem[]>(error);
     }
 
     const enrichedData = await enrichItemsWithRecurrence(data || []);
@@ -119,7 +119,7 @@ export async function getSystemList(
 
     if (error) {
       todoLogger.error('getSystemList query failed', { error });
-      return handleServiceError(error);
+      return handleServiceError<{ id: number; name: string; color: string; is_system: boolean }>(error);
     }
 
     return { success: true, data };
