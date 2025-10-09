@@ -30,6 +30,7 @@ interface TodoListProps {
   onToggleComplete?: (id: number, isCompleted: boolean) => void;
   onToggleImportant?: (id: number, isImportant: boolean) => void;
   onItemUpdate?: (updatedItem: TodoItem) => void;
+  listColor?: string;
 }
 
 type OptimisticAction =
@@ -47,6 +48,7 @@ export default function TodoList({
   onToggleComplete: externalOnToggleComplete,
   onToggleImportant: externalOnToggleImportant,
   onItemUpdate,
+  listColor,
 }: TodoListProps) {
   const { user } = useAuth();
   const { loadSystemMenuCounts } = useTodoMenuContext();
@@ -377,6 +379,7 @@ export default function TodoList({
             onSelect={(id) => onSelectItem?.(id)}
             onDelete={handleDelete}
             isSelected={selectedItemId === item.id}
+            listColor={listColor}
           />
         ))}
 
@@ -397,6 +400,7 @@ export default function TodoList({
                 onSelect={(id) => onSelectItem?.(id)}
                 onDelete={handleDelete}
                 isSelected={selectedItemId === item.id}
+                listColor={listColor}
               />
             ))}
           </>

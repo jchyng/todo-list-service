@@ -374,6 +374,7 @@ function TodoPageContent() {
                     onToggleComplete={handleToggleComplete}
                     onToggleImportant={handleToggleImportant}
                     onItemUpdate={handleItemUpdate}
+                    listColor={listData?.color}
                     className="px-4 py-3"
                   />
                 </div>

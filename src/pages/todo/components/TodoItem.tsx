@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import SimpleDropdown from "@/components/ui/SimpleDropdown";
 import type { TodoItem } from "@/types/todoItem";
+import { borderColorClasses, type TailwindColor } from "@/constant/TailwindColor";
 
 interface TodoItemProps {
   item: TodoItem;
@@ -12,6 +13,7 @@ interface TodoItemProps {
   onSelect: (id: number) => void;
   onDelete: (id: number) => void;
   isSelected?: boolean;
+  listColor?: string;
 }
 
 const TodoItemComponent = memo(function TodoItemComponent({
@@ -21,6 +23,7 @@ const TodoItemComponent = memo(function TodoItemComponent({
   onSelect,
   onDelete,
   isSelected = false,
+  listColor,
 }: TodoItemProps) {
   const handleToggleComplete = (e: React.MouseEvent) => {
     e.stopPropagation(); // 클릭 이벤트 버블링 방지
@@ -94,6 +97,15 @@ const TodoItemComponent = memo(function TodoItemComponent({
   // 추가 정보 존재 여부 확인
   const hasMetadata = dueDateInfo || isMyDay() || (item.repeat_config && item.repeat_config.type !== "none") || item.description;
 
+  // 선택된 아이템의 테두리 색상 결정
+  const getSelectedBorderClass = () => {
+    if (!isSelected) return "";
+    if (listColor && listColor in borderColorClasses) {
+      return borderColorClasses[listColor as TailwindColor];
+    }
+    return "border-blue-300 dark:border-blue-600";
+  };
+
   return (
     <SimpleDropdown
       triggerType="contextmenu"
@@ -113,8 +125,7 @@ const TodoItemComponent = memo(function TodoItemComponent({
         hasMetadata ? "py-2" : "py-2.5",
         "bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700",
         "hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600",
-        isSelected &&
-          "border-blue-300 dark:border-blue-600 shadow-sm",
+        isSelected && `${getSelectedBorderClass()} shadow-sm`,
         item.is_completed && "opacity-60"
       )}
       role="button"
