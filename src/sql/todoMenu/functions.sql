@@ -178,12 +178,12 @@ BEGIN
     SELECT
       'group'::TEXT as menu_type,
       g.id,
-      g.name::TEXT,
+      g.title::TEXT,
       NULL::TEXT as color,
       mp.position,
       NULL::BIGINT as parent_id,
       0::BIGINT as item_count
-    FROM groups g
+    FROM todo_groups g
     INNER JOIN menu_positions mp ON (mp.item_type = 'group' AND mp.item_id = g.id)
     WHERE g.user_id = p_user_id AND mp.user_id = p_user_id
 
@@ -193,16 +193,16 @@ BEGIN
     SELECT
       'list'::TEXT as menu_type,
       l.id,
-      l.name::TEXT,
+      l.title::TEXT,
       l.color::TEXT,
       mp.position,
       l.group_id as parent_id,
       COALESCE((
         SELECT COUNT(*)
-        FROM items i
+        FROM todo_items i
         WHERE i.list_id = l.id AND i.user_id = p_user_id
       ), 0)::BIGINT as item_count
-    FROM lists l
+    FROM todo_lists l
     INNER JOIN menu_positions mp ON (mp.item_type = 'list' AND mp.item_id = l.id)
     WHERE l.user_id = p_user_id AND mp.user_id = p_user_id AND l.is_system = false
   )
@@ -211,3 +211,54 @@ BEGIN
   ORDER BY pm.position;
 END;
 $$ LANGUAGE plpgsql;
+
+
+
+-- 시스템 메뉴별 할 일 개수 조회
+CREATE OR REPLACE FUNCTION get_system_menu_counts(p_user_id UUID)
+RETURNS JSON
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_today_count INTEGER;
+    v_important_count INTEGER;
+    v_tasks_count INTEGER;
+    v_result JSON;
+BEGIN
+    -- 오늘 할 일: scheduled_date가 오늘인 미완료 항목
+    SELECT COUNT(*)
+    INTO v_today_count
+    FROM todo_items
+    WHERE user_id = p_user_id
+      AND is_completed = FALSE
+      AND scheduled_date = CURRENT_DATE;
+
+    -- 중요: is_important가 true인 미완료 항목
+    SELECT COUNT(*)
+    INTO v_important_count
+    FROM todo_items
+    WHERE user_id = p_user_id
+      AND is_completed = FALSE
+      AND is_important = TRUE;
+
+    -- 작업: '작업' 시스템 리스트의 미완료 항목
+    SELECT COUNT(*)
+    INTO v_tasks_count
+    FROM todo_items i
+    JOIN todo_lists l ON i.list_id = l.id
+    WHERE i.user_id = p_user_id
+      AND i.is_completed = FALSE
+      AND l.title = '작업'
+      AND l.is_system = TRUE;
+
+    -- JSON 형태로 반환
+    v_result := json_build_object(
+        'today', COALESCE(v_today_count, 0),
+        'important', COALESCE(v_important_count, 0),
+        'tasks', COALESCE(v_tasks_count, 0)
+    );
+
+    RETURN v_result;
+END;
+$$;

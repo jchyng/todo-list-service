@@ -18,14 +18,14 @@ $$ LANGUAGE plpgsql;
 
 
 
--- groups 삭제 시 menu_positions에서 자동 삭제
+-- todo_groups 삭제 시 menu_positions에서 자동 삭제
 CREATE TRIGGER delete_group_position_trigger
-    AFTER DELETE ON groups
+    AFTER DELETE ON todo_groups
     FOR EACH ROW
     EXECUTE FUNCTION delete_group_position();
 
--- lists 삭제 시 menu_positions에서 자동 삭제
+-- todo_lists 삭제 시 menu_positions에서 자동 삭제
 CREATE TRIGGER delete_list_position_trigger
-    AFTER DELETE ON lists
+    AFTER DELETE ON todo_lists
     FOR EACH ROW
     EXECUTE FUNCTION delete_list_position();
