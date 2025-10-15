@@ -15,12 +15,5 @@ export {
   updateRecurrenceRule,
   deleteRecurrenceRule,
   getRecurrenceRule,
+  deactivateRecurrenceRule,
 } from './crud';
-
-// 예외 처리 함수
-export {
-  addRecurrenceException,
-  getRecurrenceExceptions,
-  removeRecurrenceException,
-  isDateException,
-} from './exceptions';

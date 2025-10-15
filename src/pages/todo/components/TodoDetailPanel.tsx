@@ -1,12 +1,15 @@
+import { useMemo } from "react";
 import { X, Trash2, Check, Star, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/datepicker";
 import { RepeatPicker } from "@/components/ui/repeat-picker";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/useToast";
+import { logger } from "@/lib/logger";
 import { EditableTitle } from "./EditableTitle";
 import { EditableDescription } from "./EditableDescription";
 import type { TodoItem, RepeatConfig } from "@/types/todoItem";
+import { convertRepeatConfigToRecurrenceRule } from "@/services/recurrence/converters";
 
 interface TodoDetailPanelProps {
   item: TodoItem | null;
@@ -17,7 +20,7 @@ interface TodoDetailPanelProps {
       title?: string;
       description?: string;
       due_date?: string | null;
-      added_to_my_day_date?: string | null;
+      scheduled_date?: string | null;
       is_completed?: boolean;
       is_important?: boolean;
       repeat_config?: RepeatConfig | null;
@@ -32,6 +35,13 @@ export default function TodoDetailPanel({
   onUpdate,
   onDelete,
 }: TodoDetailPanelProps) {
+  // 안정적인 key 생성 (item.id + repeat_config로 고유성 보장)
+  const repeatConfigKey = useMemo(() => {
+    if (!item) return 'no-item';
+    if (!item.repeat_config) return `${item.id}-none`;
+    return `${item.id}-${JSON.stringify(item.repeat_config)}`;
+  }, [item]);
+
   if (!item) return null;
 
   const handleSaveTitle = (title: string) => {
@@ -63,13 +73,13 @@ export default function TodoDetailPanel({
 
   const handleToggleMyDay = () => {
     const today = new Date().toISOString().split("T")[0];
-    const newValue = item.added_to_my_day_date === today ? null : today;
-    onUpdate(item.id, { added_to_my_day_date: newValue });
+    const newValue = item.scheduled_date === today ? null : today;
+    onUpdate(item.id, { scheduled_date: newValue });
   };
 
   const isAddedToMyDay = () => {
     const today = new Date().toISOString().split("T")[0];
-    return item.added_to_my_day_date === today;
+    return item.scheduled_date === today;
   };
 
   const handleDueDateChange = (date: Date | undefined) => {
@@ -82,12 +92,21 @@ export default function TodoDetailPanel({
     }
   };
 
-  const handleRepeatChange = (config: RepeatConfig | undefined) => {
-    if (config === undefined) {
-      // 반복 삭제
-      onUpdate(item.id, { repeat_config: null });
-    } else {
-      onUpdate(item.id, { repeat_config: config });
+  const handleRepeatChange = async (config: RepeatConfig | undefined) => {
+    try {
+      if (config === undefined) {
+        // 반복 삭제
+        onUpdate(item.id, { repeat_config: null });
+      } else {
+        // 변환 가능 여부 검증 (none 타입이 아닌 경우만)
+        if (config.type !== 'none') {
+          convertRepeatConfigToRecurrenceRule(config);
+        }
+        onUpdate(item.id, { repeat_config: config });
+      }
+    } catch (error) {
+      logger.error("Failed to convert repeat config", "TodoDetailPanel", { error, config });
+      toast.error("반복 설정 변환에 실패했습니다");
     }
   };
 
@@ -207,6 +226,7 @@ export default function TodoDetailPanel({
           {/* Repeat */}
           <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-0">
             <RepeatPicker
+              key={repeatConfigKey}
               value={item.repeat_config}
               onChange={handleRepeatChange}
               placeholder="반복 설정"
@@ -225,7 +245,7 @@ export default function TodoDetailPanel({
       {/* Footer with creation date and delete */}
       <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
         <span className="text-xs text-gray-500 dark:text-gray-400">
-          {new Date(item.created_at).toLocaleDateString("ko-KR", {
+          {item.created_at && new Date(item.created_at).toLocaleDateString("ko-KR", {
             month: "long",
             day: "numeric",
             weekday: "short",

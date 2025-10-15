@@ -13,13 +13,20 @@ interface RepeatPickerProps {
   disabled?: boolean;
 }
 
+// 5가지 간단한 반복 옵션
 const REPEAT_OPTIONS = [
-  { type: "none" as const, label: "반복 안함" },
   { type: "daily" as const, label: "매일" },
-  { type: "weekdays" as const, label: "평일 (월-금)" },
+  { type: "weekdays" as const, label: "평일" },
   { type: "weekly" as const, label: "매주" },
   { type: "monthly" as const, label: "매월" },
-  { type: "yearly" as const, label: "매년" },
+  { type: "custom" as const, label: "사용자 정의" },
+];
+
+// 사용자 정의 반복 단위
+const CUSTOM_FREQUENCY_OPTIONS = [
+  { value: "daily" as const, label: "일" },
+  { value: "weekly" as const, label: "주" },
+  { value: "monthly" as const, label: "월" },
 ];
 
 const DAYS_OF_WEEK = [
@@ -43,6 +50,8 @@ export function RepeatPicker({
   const [selectedType, setSelectedType] = React.useState<RepeatConfig["type"]>(
     value?.type || "none"
   );
+  // 사용자 정의 전용 상태
+  const [customFrequency, setCustomFrequency] = React.useState<"daily" | "weekly" | "monthly">("weekly");
   const [interval, setInterval] = React.useState(value?.interval || 1);
   const [selectedDays, setSelectedDays] = React.useState<number[]>(
     value?.daysOfWeek || []
@@ -50,52 +59,129 @@ export function RepeatPicker({
 
   // value prop이 변경될 때 로컬 상태 동기화
   React.useEffect(() => {
-    setSelectedType(value?.type || "none");
-    setInterval(value?.interval || 1);
-    setSelectedDays(value?.daysOfWeek || []);
+    if (!value || value.type === "none") {
+      setSelectedType("none");
+      setInterval(1);
+      setSelectedDays([]);
+      setCustomFrequency("weekly");
+      return;
+    }
+
+    // 기본 옵션(daily, weekdays, weekly, monthly)은 해당 타입으로 설정
+    if (value.type !== "custom") {
+      setSelectedType(value.type);
+      setInterval(1);
+      setSelectedDays([]);
+      setCustomFrequency("weekly");
+      return;
+    }
+
+    // custom 타입인 경우
+    setSelectedType("custom");
+    setInterval(value.interval || 1);
+    setSelectedDays(value.daysOfWeek || []);
+
+    // daysOfWeek가 있으면 weekly, 없으면 기본 daily
+    if (value.daysOfWeek && value.daysOfWeek.length > 0) {
+      setCustomFrequency("weekly");
+    } else {
+      setCustomFrequency("daily");
+    }
   }, [value]);
+
+  // 팝업이 열릴 때마다 상태 초기화 (value를 기준으로)
+  React.useEffect(() => {
+    if (!open) return;
+
+    if (!value || value.type === "none") {
+      setSelectedType("none");
+      setInterval(1);
+      setSelectedDays([]);
+      setCustomFrequency("weekly");
+      return;
+    }
+
+    // 기본 옵션은 해당 타입으로 설정
+    if (value.type !== "custom") {
+      setSelectedType(value.type);
+      setInterval(1);
+      setSelectedDays([]);
+      setCustomFrequency("weekly");
+      return;
+    }
+
+    // custom 타입인 경우
+    setSelectedType("custom");
+    setInterval(value.interval || 1);
+    setSelectedDays(value.daysOfWeek || []);
+
+    if (value.daysOfWeek && value.daysOfWeek.length > 0) {
+      setCustomFrequency("weekly");
+    } else {
+      setCustomFrequency("daily");
+    }
+  }, [open, value]);
 
   const formatRepeatConfig = (config: RepeatConfig) => {
     if (config.type === "none") return "";
 
     switch (config.type) {
       case "daily":
-        return config.interval === 1 ? "매일" : `${config.interval}일마다`;
+        return "매일";
       case "weekdays":
-        return config.interval === 1 ? "평일 (월-금)" : `${config.interval}주마다 평일`;
+        return "평일 (월~금)";
       case "weekly":
+        return "매주 (월요일)";
+      case "monthly":
+        return "매월 (1일)";
+      case "custom":
+        // 사용자 정의 포맷
+        const intervalText = config.interval || 1;
+
+        // 요일 선택이 있는 경우 (주 단위)
         if (config.daysOfWeek && config.daysOfWeek.length > 0) {
           const dayLabels = config.daysOfWeek
             .map((day) => DAYS_OF_WEEK.find((d) => d.value === day)?.shortLabel)
             .filter(Boolean);
-          return `매주 ${dayLabels.join(", ")}`;
+
+          if (intervalText === 1) {
+            return `매주 ${dayLabels.join(", ")}`;
+          } else {
+            return `${intervalText}주마다 ${dayLabels.join(", ")}`;
+          }
         }
-        return config.interval === 1 ? "매주" : `${config.interval}주마다`;
-      case "monthly":
-        return config.interval === 1 ? "매월" : `${config.interval}개월마다`;
-      case "yearly":
-        return config.interval === 1 ? "매년" : `${config.interval}년마다`;
+
+        // 요일 선택이 없는 경우 (일 또는 월 단위)
+        if (intervalText === 1) {
+          return "매일";
+        } else {
+          return `${intervalText}일마다`;
+        }
       default:
         return "사용자 정의";
     }
   };
 
-  const handleApply = () => {
-    if (selectedType === "none") {
-      onChange?.(undefined);
-    } else {
-      const config: RepeatConfig = {
-        type: selectedType,
-        interval: interval,
-      };
+  // 기본 옵션 선택 시 즉시 적용
+  const handleBasicOptionSelect = (type: "daily" | "weekdays" | "weekly" | "monthly") => {
+    const config: RepeatConfig = { type };
+    onChange?.(config);
+    setOpen(false);
+  };
 
-      // 주간 반복일 때 선택된 요일 추가
-      if (selectedType === "weekly" && selectedDays.length > 0) {
-        config.daysOfWeek = selectedDays;
-      }
+  // 사용자 정의 적용
+  const handleCustomApply = () => {
+    const config: RepeatConfig = {
+      type: "custom",
+      interval,
+    };
 
-      onChange?.(config);
+    // 주간 반복일 때 선택된 요일 추가
+    if (customFrequency === "weekly" && selectedDays.length > 0) {
+      config.daysOfWeek = selectedDays;
     }
+
+    onChange?.(config);
     setOpen(false);
   };
 
@@ -106,6 +192,7 @@ export function RepeatPicker({
     setSelectedType("none");
     setSelectedDays([]);
     setInterval(1);
+    setCustomFrequency("weekly");
     setOpen(false);
   };
 
@@ -117,8 +204,17 @@ export function RepeatPicker({
     );
   };
 
+  // 사용자 정의 옵션 클릭 시
+  const handleCustomOptionClick = () => {
+    setSelectedType("custom");
+    // 초기값 설정
+    setInterval(1);
+    setCustomFrequency("weekly");
+    setSelectedDays([]);
+  };
+
   const repeatContent = (
-    <div className="w-80 p-3 space-y-3">
+    <div className="w-56 p-3 space-y-3">
       {/* 반복 유형 선택 */}
       <div className="space-y-2">
         <h4 className="text-xs font-medium text-gray-900 dark:text-gray-100">
@@ -130,7 +226,13 @@ export function RepeatPicker({
               key={option.type}
               variant="ghost"
               size="sm"
-              onClick={() => setSelectedType(option.type)}
+              onClick={() => {
+                if (option.type === "custom") {
+                  handleCustomOptionClick();
+                } else {
+                  handleBasicOptionSelect(option.type);
+                }
+              }}
               className={cn(
                 "w-full justify-start hover:bg-gray-100 dark:hover:bg-gray-800 text-xs h-7",
                 selectedType === option.type &&
@@ -143,92 +245,91 @@ export function RepeatPicker({
         </div>
       </div>
 
-      {/* 주간 반복 시 요일 선택 */}
-      {selectedType === "weekly" && (
-        <div className="space-y-1">
-          <h5 className="text-xs font-medium text-gray-700 dark:text-gray-300">
-            반복할 요일
-          </h5>
-          <div className="grid grid-cols-7 gap-1">
-            {DAYS_OF_WEEK.map((day) => (
-              <Button
-                key={day.value}
-                variant="outline"
-                size="sm"
-                onClick={() => toggleDay(day.value)}
-                className={cn(
-                  "h-7 w-full text-xs border-gray-200 dark:border-gray-700 px-1",
-                  selectedDays.includes(day.value) &&
-                    "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-700"
-                )}
-              >
-                {day.shortLabel}
-              </Button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* 간격 설정 (none, weekdays 제외) */}
-      {selectedType !== "none" && selectedType !== "weekdays" && (
-        <div className="space-y-1">
-          <h5 className="text-xs font-medium text-gray-700 dark:text-gray-300">
-            반복 간격
-          </h5>
+      {/* 사용자 정의 설정 */}
+      {selectedType === "custom" && (
+        <div className="space-y-3 pt-2 border-t border-gray-200 dark:border-gray-700">
+          {/* 반복 주기 + 반복 단위 (한 줄) */}
           <div className="flex items-center gap-2">
+            {/* 반복 주기 입력 */}
+            <input
+              type="number"
+              min="1"
+              value={interval}
+              onChange={(e) => setInterval(Math.max(1, parseInt(e.target.value) || 1))}
+              className="w-16 text-center text-sm px-2 py-1 border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+            />
+
+            {/* 반복 단위 선택 (select) */}
+            <select
+              value={customFrequency}
+              onChange={(e) => {
+                const newFreq = e.target.value as "daily" | "weekly" | "monthly";
+                setCustomFrequency(newFreq);
+                // 주가 아닌 경우 요일 선택 초기화
+                if (newFreq !== "weekly") {
+                  setSelectedDays([]);
+                }
+              }}
+              className="flex-1 text-sm px-2 py-1 border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+            >
+              {CUSTOM_FREQUENCY_OPTIONS.map((freq) => (
+                <option key={freq.value} value={freq.value}>
+                  {freq.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* 주간 반복 시 요일 선택 */}
+          {customFrequency === "weekly" && (
+            <div className="space-y-1">
+              <h5 className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                요일 선택
+              </h5>
+              <div className="grid grid-cols-4 gap-1">
+                {DAYS_OF_WEEK.map((day) => (
+                  <Button
+                    key={day.value}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => toggleDay(day.value)}
+                    className={cn(
+                      "h-7 w-full text-xs border-gray-200 dark:border-gray-700 px-1",
+                      selectedDays.includes(day.value) &&
+                        "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-700"
+                    )}
+                  >
+                    {day.shortLabel}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 적용/취소 버튼 */}
+          <div className="flex gap-1 pt-2 border-t border-gray-200 dark:border-gray-700">
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setInterval(Math.max(1, interval - 1))}
-              disabled={interval <= 1}
-              className="h-6 w-6 p-0 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-50"
+              onClick={() => {
+                setSelectedType("none");
+                setOpen(false);
+              }}
+              className="flex-1 hover:bg-gray-100 dark:hover:bg-gray-800 text-xs h-7"
             >
-              -
+              취소
             </Button>
-            <span className="flex-1 text-center text-xs text-gray-700 dark:text-gray-300">
-              {interval}{" "}
-              {selectedType === "daily"
-                ? "일"
-                : selectedType === "weekly"
-                ? "주"
-                : selectedType === "monthly"
-                ? "개월"
-                : selectedType === "yearly"
-                ? "년"
-                : ""}
-              마다
-            </span>
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setInterval(interval + 1)}
-              className="h-6 w-6 p-0 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800"
+              onClick={handleCustomApply}
+              className="flex-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-xs h-7"
             >
-              +
+              적용
             </Button>
           </div>
         </div>
       )}
-
-      {/* 적용/취소 버튼 */}
-      <div className="flex gap-1 pt-2 border-t border-gray-200 dark:border-gray-700">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setOpen(false)}
-          className="flex-1 hover:bg-gray-100 dark:hover:bg-gray-800 text-xs h-7"
-        >
-          취소
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleApply}
-          className="flex-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-xs h-7"
-        >
-          적용
-        </Button>
-      </div>
     </div>
   );
 

@@ -2,7 +2,7 @@ import { supabase } from "@/lib/supabase";
 import type { ServiceResult } from "@/utils/serviceUtils";
 import { handleServiceError } from "@/utils/serviceUtils";
 import type { TodoItem, CreateTodoItemData, UpdateTodoItemData } from "@/types/todoItem";
-import { createRecurrenceRule, updateRecurrenceRule, deleteRecurrenceRule } from "../recurrence";
+import { createRecurrenceRule, updateRecurrenceRule, deleteRecurrenceRule, deactivateRecurrenceRule } from "../recurrence";
 import { fetchRecurrenceConfig, enrichItemsWithRecurrence, generateNewPosition } from "./utils";
 import { todoLogger } from "@/lib/logger";
 
@@ -49,7 +49,7 @@ export async function createTodoItem(
     }
 
     const { data: item, error } = await supabase
-      .from("items")
+      .from("todo_items")
       .insert(insertData)
       .select("*")
       .single();
@@ -84,7 +84,7 @@ export async function getTodoItems(
 ): Promise<ServiceResult<TodoItem[]>> {
   try {
     const { data, error } = await supabase
-      .from("items")
+      .from("todo_items")
       .select("*")
       .eq("user_id", _userId)
       .eq("list_id", listId)
@@ -104,7 +104,6 @@ export async function getTodoItems(
 }
 
 interface TodoItemUpdatePayload extends UpdateTodoItemData {
-  updated_at: string;
   completed_at?: string | null;
 }
 
@@ -119,7 +118,6 @@ export async function updateTodoItem(
   try {
     const updateData: TodoItemUpdatePayload = {
       ...data,
-      updated_at: new Date().toISOString(),
     };
 
     // 완료 상태가 변경될 때 completed_at 설정
@@ -129,7 +127,7 @@ export async function updateTodoItem(
 
     // 기존 아이템 정보 조회 (반복 설정 포함)
     const { data: existingItem, error: fetchError } = await supabase
-      .from("items")
+      .from("todo_items")
       .select("recurrence_id, list_id")
       .eq("id", itemId)
       .eq("user_id", _userId)
@@ -140,9 +138,14 @@ export async function updateTodoItem(
     // 반복 설정 처리
     if (data.repeat_config !== undefined) {
       if (data.repeat_config === null || data.repeat_config.type === 'none') {
-        // 반복 제거: recurrence_id만 NULL로 설정
+        // 반복 제거: recurrence_rule 비활성화
         if (existingItem.recurrence_id) {
-          updateData.recurrence_id = null;
+          // is_active를 false로 설정하여 비활성화 (삭제하지 않음)
+          const deactivateResult = await deactivateRecurrenceRule(existingItem.recurrence_id);
+          if (!deactivateResult.success) {
+            return { success: false, error: deactivateResult.error };
+          }
+          // recurrence_id는 유지 (이전 기록들과의 연결 유지)
         }
       } else {
         // 반복 설정 추가/변경
@@ -167,15 +170,23 @@ export async function updateTodoItem(
     }
 
     // 아이템 업데이트
-    const { data: item, error } = await supabase
-      .from("items")
+    const { error: updateError } = await supabase
+      .from("todo_items")
       .update(updateData)
       .eq("id", itemId)
+      .eq("user_id", _userId);
+
+    if (updateError) return handleServiceError(updateError);
+
+    // 업데이트 후 아이템 조회
+    const { data: item, error: selectError } = await supabase
+      .from("todo_items")
+      .select("*")
+      .eq("id", itemId)
       .eq("user_id", _userId)
-      .select()
       .single();
 
-    if (error) return handleServiceError(error);
+    if (selectError) return handleServiceError(selectError);
 
     // 반복 설정이 있으면 별도로 조회
     let repeat_config;
@@ -208,7 +219,7 @@ export async function deleteTodoItem(
 ): Promise<ServiceResult> {
   try {
     const { error: deleteError } = await supabase
-      .from("items")
+      .from("todo_items")
       .delete()
       .eq("id", itemId)
       .eq("user_id", _userId);
@@ -229,7 +240,7 @@ export async function duplicateTodoItem(
   itemId: number
 ): Promise<ServiceResult<TodoItem>> {
   const { data: originalItem, error: fetchError } = await supabase
-    .from("items")
+    .from("todo_items")
     .select("*")
     .eq("id", itemId)
     .eq("user_id", _userId)

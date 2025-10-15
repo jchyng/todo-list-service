@@ -295,7 +295,7 @@ function TodoPageContent() {
       title?: string;
       description?: string;
       due_date?: string | null;
-      added_to_my_day_date?: string | null;
+      scheduled_date?: string | null;
       is_completed?: boolean;
       is_important?: boolean;
       repeat_config?: any | null;
@@ -311,12 +311,45 @@ function TodoPageContent() {
       return handleToggleImportant(id, data.is_important);
     }
 
+    // repeat_config 변경 시 낙관적 업데이트 적용
+    if (data.repeat_config !== undefined && selectedItem && selectedItem.id === id) {
+      const previousItem = { ...selectedItem };
+
+      // 낙관적 업데이트: 즉시 UI 반영
+      setSelectedItem({
+        ...selectedItem,
+        repeat_config: data.repeat_config,
+      });
+
+      try {
+        const result = await updateTodoItem(user.id, id, data);
+        if (result.success && result.data) {
+          // 성공 시 서버 데이터로 완전히 교체 (서버가 변환한 repeat_config 포함)
+          setSelectedItem(result.data);
+          if (data.scheduled_date !== undefined) {
+            loadSystemMenuCounts(user.id);
+          }
+        } else {
+          // 실패 시 롤백
+          setSelectedItem(previousItem);
+          toast.error("업데이트에 실패했습니다");
+        }
+      } catch (error) {
+        // 에러 시 롤백
+        setSelectedItem(previousItem);
+        logger.error("Failed to update item", "TodoPage", { error });
+        toast.error("업데이트 중 오류가 발생했습니다");
+      }
+      return;
+    }
+
+    // 나머지 필드 업데이트 (기존 로직)
     try {
       const result = await updateTodoItem(user.id, id, data);
       if (result.success && result.data) {
         setSelectedItem(result.data);
-        // added_to_my_day_date 변경 시 시스템 메뉴 카운트 새로고침
-        if (data.added_to_my_day_date !== undefined) {
+        // scheduled_date 변경 시 시스템 메뉴 카운트 새로고침
+        if (data.scheduled_date !== undefined) {
           loadSystemMenuCounts(user.id);
         }
       } else {
@@ -374,7 +407,7 @@ function TodoPageContent() {
                     onToggleComplete={handleToggleComplete}
                     onToggleImportant={handleToggleImportant}
                     onItemUpdate={handleItemUpdate}
-                    listColor={listData?.color}
+                    listColor={listData?.color || undefined}
                     className="px-4 py-3"
                   />
                 </div>

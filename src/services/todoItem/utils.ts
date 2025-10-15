@@ -8,11 +8,13 @@ import { todoLogger } from "@/lib/logger";
  */
 export async function fetchRecurrenceConfig(recurrenceId: number) {
   try {
+    // SELECT와 필터를 분리하여 406 에러 방지
     const { data: ruleData, error } = await supabase
       .from("recurrence_rule")
       .select("*")
       .eq("id", recurrenceId)
-      .single();
+      .eq("is_active", true)
+      .maybeSingle();  // single() 대신 maybeSingle() 사용
 
     if (error || !ruleData) {
       todoLogger.warn('Failed to fetch recurrence rule', { error, recurrenceId });

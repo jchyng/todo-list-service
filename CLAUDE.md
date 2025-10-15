@@ -27,8 +27,7 @@ src/
 │   │   └── menu.ts        # 메뉴 조회, 카운트
 │   ├── recurrence/        # 반복 규칙 관리
 │   │   ├── converters.ts  # RepeatConfig ↔ RecurrenceRule 변환
-│   │   ├── crud.ts        # 반복 규칙 CRUD
-│   │   └── exceptions.ts  # 반복 예외 처리
+│   │   └── crud.ts        # 반복 규칙 CRUD
 │   └── systemTodoService.ts  # 시스템 메뉴(오늘, 중요)
 ├── hooks/
 │   ├── useAuth.ts              # 인증 상태 관리
@@ -50,18 +49,7 @@ src/
 **모든 사용자 액션은 즉시 UI에 반영**
 - UI 즉시 업데이트 → 백그라운드 DB 저장 → 실패 시 롤백
 - React의 `useOptimistic`, `startTransition` 활용
-- `utils/optimisticHelpers.ts`에서 공통 패턴 제공
-
-```typescript
-// 낙관적 업데이트 패턴 예시
-const result = await executeOptimisticUpdate({
-  setState: setUserMenus,
-  optimisticUpdate: (prev) => prev.map(...),  // 즉시 UI 반영
-  asyncOperation: async () => await updateAPI(...),  // 백그라운드 저장
-  rollbackState: originalMenus,  // 실패 시 복원
-  onError: (error) => toast.error(...)
-});
-```
+- `utils/optimisticHelpers.ts`에서 공통 패턴 제공 (`executeOptimisticUpdate` 함수)
 
 ### 2. 모듈화 및 단일 책임 원칙
 
@@ -73,17 +61,9 @@ const result = await executeOptimisticUpdate({
 ### 3. Fractional Indexing (Position 관리)
 
 **PostgreSQL 함수에서 순서 계산 자동 처리**
-- 클라이언트: "A 뒤에 추가" 요청만
-- 서버: `generate_position_between` 함수로 자동 계산
+- 클라이언트: "A 뒤에 추가" 요청만 전송
+- 서버: `generate_position_between` RPC 함수로 자동 계산
 - 장점: 프론트엔드 부하 최소화, 타입 안전성
-
-```typescript
-// RPC 호출로 간단하게 순서 관리
-const { data } = await supabase.rpc('generate_position_between', {
-  p_before: null,
-  p_after: null
-});
-```
 
 ### 4. 타입 안전성
 
@@ -137,8 +117,8 @@ npm run lint   # ESLint 검사
 
 ## 주요 특징
 
-- ✅ **실시간 동기화**: Supabase Realtime으로 메뉴 카운트 자동 업데이트
-- ✅ **반복 작업**: RRule 기반 반복 일정 관리
-- ✅ **드래그 앤 드롭**: 메뉴 순서 변경 및 그룹화
-- ✅ **다크 모드**: 시스템 설정 자동 감지
-- ✅ **반응형 디자인**: 모바일/태블릿/데스크톱 최적화
+- 실시간 동기화 (Supabase Realtime)
+- 반복 작업 관리 (간소화된 5가지 옵션)
+- 드래그 앤 드롭 메뉴 정렬
+- 다크 모드 지원
+- 반응형 디자인

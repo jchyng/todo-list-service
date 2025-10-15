@@ -2,7 +2,6 @@ import { supabase } from "@/lib/supabase";
 import type { ServiceResult } from "@/utils/serviceUtils";
 import type { TodoItem } from "@/types/todoItem";
 import { updateTodoItem } from "./crud";
-import { addRecurrenceException } from "../recurrence";
 import { todoLogger } from "@/lib/logger";
 
 /**
@@ -56,34 +55,9 @@ export async function deleteRecurringInstance(
   itemId: number
 ): Promise<ServiceResult> {
   try {
-    // 1. 해당 작업 정보 조회
-    const { data: item, error: fetchError } = await supabase
-      .from("items")
-      .select("recurrence_id, due_date")
-      .eq("id", itemId)
-      .eq("user_id", _userId)
-      .single();
-
-    if (fetchError) {
-      return { success: false, error: fetchError.message };
-    }
-
-    // 2. 반복 작업인 경우 예외 날짜로 기록
-    if (item.recurrence_id && item.due_date) {
-      const exceptionResult = await addRecurrenceException(
-        item.recurrence_id,
-        item.due_date,
-        'deleted'
-      );
-
-      if (!exceptionResult.success) {
-        todoLogger.error('Failed to add recurrence exception', { error: exceptionResult.error });
-      }
-    }
-
-    // 3. 작업 삭제
+    // 작업 삭제 (반복 예외 기능 제거됨)
     const { error: deleteError } = await supabase
-      .from("items")
+      .from("todo_items")
       .delete()
       .eq("id", itemId)
       .eq("user_id", _userId);

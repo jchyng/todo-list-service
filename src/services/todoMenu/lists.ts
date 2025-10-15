@@ -8,18 +8,18 @@ import { handleServiceError } from "@/utils/serviceUtils";
  */
 export async function createList(
   userId: string,
-  name: string,
+  title: string,
   color: TailwindColor | null = null,
   groupId: number | null = null,
   index?: number
 ): Promise<ServiceResult> {
   const { data: list, error: listError } = await supabase
-    .from("lists")
+    .from("todo_lists")
     .insert({
       user_id: userId,
       group_id: groupId,
       color,
-      name,
+      title,
       is_system: false,
     })
     .select()
@@ -53,14 +53,14 @@ export async function createList(
  */
 export async function createSystemList(
   userId: string,
-  name: string,
+  title: string,
   color: TailwindColor | null = null
 ): Promise<ServiceResult> {
   const { data, error } = await supabase
-    .from("lists")
+    .from("todo_lists")
     .insert({
       user_id: userId,
-      name,
+      title,
       color,
       is_system: true,
     })
@@ -83,7 +83,7 @@ export async function createDefaultSystemList(userId: string): Promise<ServiceRe
  */
 export async function deleteList(userId: string, listId: number): Promise<ServiceResult> {
   const { error } = await supabase
-    .from("lists")
+    .from("todo_lists")
     .delete()
     .eq("id", listId)
     .eq("user_id", userId);
@@ -97,8 +97,8 @@ export async function deleteList(userId: string, listId: number): Promise<Servic
  */
 export async function getListById(userId: string, listId: number): Promise<ServiceResult> {
   const { data, error } = await supabase
-    .from("lists")
-    .select("id, name, color, is_system")
+    .from("todo_lists")
+    .select("id, title, color, is_system")
     .eq("id", listId)
     .eq("user_id", userId)
     .single();
@@ -116,11 +116,11 @@ export async function updateListColor(
   color: TailwindColor
 ): Promise<ServiceResult> {
   const { data, error } = await supabase
-    .from("lists")
+    .from("todo_lists")
     .update({ color })
     .eq("id", listId)
     .eq("user_id", userId)
-    .select("id, name, color, is_system")
+    .select("id, title, color, is_system")
     .single();
 
   if (error) return handleServiceError(error);
@@ -128,19 +128,19 @@ export async function updateListColor(
 }
 
 /**
- * 리스트 이름 업데이트
+ * 리스트 제목 업데이트
  */
-export async function updateListName(
+export async function updateListTitle(
   userId: string,
   listId: number,
-  name: string
+  title: string
 ): Promise<ServiceResult> {
   const { data, error } = await supabase
-    .from("lists")
-    .update({ name })
+    .from("todo_lists")
+    .update({ title })
     .eq("id", listId)
     .eq("user_id", userId)
-    .select("id, name, color, is_system")
+    .select("id, title, color, is_system")
     .single();
 
   if (error) return handleServiceError(error);

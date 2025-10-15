@@ -98,3 +98,27 @@ export async function getRecurrenceRule(id: number): Promise<ServiceResult<Recur
     return { success: false, error: "반복 규칙 조회 중 오류가 발생했습니다" };
   }
 }
+
+/**
+ * recurrence_rule 비활성화
+ *
+ * 마지막 todoItem에서 반복 제거 시:
+ * - is_active를 false로 설정하여 비활성화
+ * - 이전 기록들의 recurrence_id는 그대로 유지됨
+ */
+export async function deactivateRecurrenceRule(id: number): Promise<ServiceResult<RecurrenceRule>> {
+  try {
+    const { data, error } = await supabase
+      .from("recurrence_rule")
+      .update({ is_active: false })
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) return handleServiceError(error);
+    return { success: true, data };
+  } catch (error) {
+    todoLogger.error('Deactivate recurrence rule error', { error });
+    return { success: false, error: "반복 규칙 비활성화 중 오류가 발생했습니다" };
+  }
+}

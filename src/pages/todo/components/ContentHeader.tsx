@@ -8,7 +8,7 @@ import { logger } from "@/lib/logger";
 
 export interface ListData {
   id: number;
-  name: string;
+  title: string;
   color: string | null;
   is_system: boolean;
 }
@@ -98,7 +98,7 @@ export default function ContentHeader({
             />
           </div>
           <h1 className="text-2xl font-semibold text-gray-900">
-            {listData.name}
+            {listData.title}
           </h1>
         </div>
       </div>

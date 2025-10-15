@@ -7,14 +7,14 @@ import { handleServiceError } from "@/utils/serviceUtils";
  */
 export async function createGroup(
   userId: string,
-  name: string,
+  title: string,
   index?: number
 ): Promise<ServiceResult> {
   const { data: group, error: groupError } = await supabase
-    .from("groups")
+    .from("todo_groups")
     .insert({
       user_id: userId,
-      name,
+      title,
     })
     .select()
     .single();
@@ -43,19 +43,19 @@ export async function createGroup(
 }
 
 /**
- * 그룹 이름 업데이트
+ * 그룹 제목 업데이트
  */
-export async function updateGroupName(
+export async function updateGroupTitle(
   userId: string,
   groupId: number,
-  name: string
+  title: string
 ): Promise<ServiceResult> {
   const { data, error } = await supabase
-    .from("groups")
-    .update({ name })
+    .from("todo_groups")
+    .update({ title })
     .eq("id", groupId)
     .eq("user_id", userId)
-    .select("id, name")
+    .select("id, title")
     .single();
 
   if (error) return handleServiceError(error);
@@ -67,7 +67,7 @@ export async function updateGroupName(
  */
 async function updateListsToIndependent(userId: string, groupId: number) {
   const { data, error } = await supabase
-    .from("lists")
+    .from("todo_lists")
     .update({ group_id: null })
     .eq("user_id", userId)
     .eq("group_id", groupId)
@@ -96,7 +96,7 @@ async function addListsToMenu(userId: string, lists: { id: number }[]) {
  */
 async function deleteGroupById(userId: string, groupId: number) {
   const { error } = await supabase
-    .from("groups")
+    .from("todo_groups")
     .delete()
     .eq("id", groupId)
     .eq("user_id", userId);

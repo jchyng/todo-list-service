@@ -6,7 +6,7 @@
 // 그룹 관리
 export {
   createGroup,
-  updateGroupName,
+  updateGroupTitle,
   dissolveGroup,
 } from './groups';
 
@@ -18,7 +18,7 @@ export {
   deleteList,
   getListById,
   updateListColor,
-  updateListName,
+  updateListTitle,
 } from './lists';
 
 // 메뉴 관리

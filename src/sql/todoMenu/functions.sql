@@ -51,7 +51,7 @@ $$ LANGUAGE plpgsql;
 -- 2. 새 아이템을 배열 인덱스에 추가
 CREATE OR REPLACE FUNCTION add_menu_item_at_index(
   p_user_id UUID,
-  p_item_type TEXT,
+  p_item_type menu_item_type,
   p_item_id BIGINT,
   p_index INTEGER DEFAULT NULL  -- 배열 인덱스 (NULL이면 맨 뒤)
 )
@@ -105,7 +105,7 @@ $$ LANGUAGE plpgsql;
 -- 3. 기존 아이템을 배열 인덱스로 이동
 CREATE OR REPLACE FUNCTION move_menu_item_to_index(
   p_user_id UUID,
-  p_item_type TEXT,
+  p_item_type menu_item_type,
   p_item_id BIGINT,
   p_index INTEGER
 )
@@ -178,7 +178,7 @@ BEGIN
     SELECT
       'group'::TEXT as menu_type,
       g.id,
-      g.title::TEXT,
+      g.title::TEXT as name,
       NULL::TEXT as color,
       mp.position,
       NULL::BIGINT as parent_id,
@@ -193,7 +193,7 @@ BEGIN
     SELECT
       'list'::TEXT as menu_type,
       l.id,
-      l.title::TEXT,
+      l.title::TEXT as name,
       l.color::TEXT,
       mp.position,
       l.group_id as parent_id,

@@ -3,8 +3,8 @@ import type { TailwindColor } from "@/constant/TailwindColor";
 import type { UserMenuProps } from "@/data/SidebarMenuData";
 import {
   updateListColor,
-  updateListName,
-  updateGroupName,
+  updateListTitle,
+  updateGroupTitle,
   deleteList,
   dissolveGroup
 } from "@/services/todoMenu";
@@ -66,7 +66,7 @@ export function useTodoMenuActions({ userMenus, setUserMenus }: UseMenuActionsPa
   // 메뉴 이름 업데이트
   const updateMenuName = useCallback(async (
     menuId: number,
-    name: string,
+    title: string,
     userId: string,
     menuType: "list" | "group"
   ) => {
@@ -76,12 +76,12 @@ export function useTodoMenuActions({ userMenus, setUserMenus }: UseMenuActionsPa
       setState: setUserMenus,
       optimisticUpdate: (prev) => prev.map(menu => {
         if (menu.id === menuId && menu.type === menuType) {
-          return { ...menu, text: name };
+          return { ...menu, text: title };
         }
         // 그룹 내 리스트 업데이트
         if (menu.type === "group" && menu.children && menuType === "list") {
           const updatedChildren = menu.children.map(child =>
-            child.id === menuId ? { ...child, text: name } : child
+            child.id === menuId ? { ...child, text: title } : child
           );
           return { ...menu, children: updatedChildren };
         }
@@ -89,8 +89,8 @@ export function useTodoMenuActions({ userMenus, setUserMenus }: UseMenuActionsPa
       }),
       asyncOperation: async () => {
         const result = menuType === "list"
-          ? await updateListName(userId, menuId, name)
-          : await updateGroupName(userId, menuId, name);
+          ? await updateListTitle(userId, menuId, title)
+          : await updateGroupTitle(userId, menuId, title);
 
         if (!result.success) {
           throw new Error(result.error);
@@ -99,13 +99,13 @@ export function useTodoMenuActions({ userMenus, setUserMenus }: UseMenuActionsPa
       },
       rollbackState: originalMenus,
       onError: (error) => {
-        contextLogger.error(`${menuType === "list" ? "목록" : "그룹"} 이름 업데이트 실패`, { error, menuId, name, menuType });
+        contextLogger.error(`${menuType === "list" ? "목록" : "그룹"} 이름 업데이트 실패`, { error, menuId, title, menuType });
         toast.error("이름 변경에 실패했습니다. 다시 시도해주세요.");
       }
     });
 
     if (result) {
-      contextLogger.success(`${menuType === "list" ? "목록" : "그룹"} 이름 업데이트 성공`, { menuId, name, menuType });
+      contextLogger.success(`${menuType === "list" ? "목록" : "그룹"} 이름 업데이트 성공`, { menuId, title, menuType });
     }
   }, [userMenus, setUserMenus]);
 

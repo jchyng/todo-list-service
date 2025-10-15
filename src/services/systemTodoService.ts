@@ -48,7 +48,7 @@ async function enrichItemsWithRecurrence(items: any[]): Promise<TodoItem[]> {
 }
 
 /**
- * 오늘 할 일 조회 (added_to_my_day_date가 오늘인 작업)
+ * 오늘 할 일 조회 (scheduled_date가 오늘인 작업)
  */
 export async function getTodayTodoItems(
   _userId: string
@@ -57,10 +57,10 @@ export async function getTodayTodoItems(
     const today = new Date().toISOString().split('T')[0];
 
     const { data, error } = await supabase
-      .from("items")
+      .from("todo_items")
       .select("*")
       .eq("user_id", _userId)
-      .eq("added_to_my_day_date", today)
+      .eq("scheduled_date", today)
       .order("position");
 
     if (error) {
@@ -84,7 +84,7 @@ export async function getImportantTodoItems(
 ): Promise<ServiceResult<TodoItem[]>> {
   try {
     const { data, error } = await supabase
-      .from("items")
+      .from("todo_items")
       .select("*")
       .eq("user_id", _userId)
       .eq("is_important", true)
@@ -108,18 +108,18 @@ export async function getImportantTodoItems(
  */
 export async function getSystemList(
   _userId: string
-): Promise<ServiceResult<{ id: number; name: string; color: string; is_system: boolean }>> {
+): Promise<ServiceResult<{ id: number; title: string; color: string; is_system: boolean }>> {
   try {
     const { data, error } = await supabase
-      .from("lists")
-      .select("id, name, color, is_system")
+      .from("todo_lists")
+      .select("id, title, color, is_system")
       .eq("user_id", _userId)
       .eq("is_system", true)
       .single();
 
     if (error) {
       todoLogger.error('getSystemList query failed', { error });
-      return handleServiceError<{ id: number; name: string; color: string; is_system: boolean }>(error);
+      return handleServiceError<{ id: number; title: string; color: string; is_system: boolean }>(error);
     }
 
     return { success: true, data };

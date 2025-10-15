@@ -138,7 +138,6 @@ export default function TodoList({
       position: "end",
       due_date: undefined,
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
       _isOptimistic: true,
     };
 
